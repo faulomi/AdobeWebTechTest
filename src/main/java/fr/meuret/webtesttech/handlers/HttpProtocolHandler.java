@@ -1,7 +1,6 @@
 package fr.meuret.webtesttech.handlers;
 
 import fr.meuret.webtesttech.http.HttpException;
-import fr.meuret.webtesttech.http.HttpMethod;
 import fr.meuret.webtesttech.http.HttpVersion;
 import fr.meuret.webtesttech.http.request.HttpRequest;
 import fr.meuret.webtesttech.http.response.HttpResponse;
@@ -12,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
@@ -36,12 +34,13 @@ public class HttpProtocolHandler {
     }
 
 
-    public void onMessage(Connection connection, ByteBuffer buffer) {
+    public void onMessage(ConnectionContext connectionContext) {
 
 
         try {
-            HttpRequest request = HttpRequest.from(buffer);
-            buildResponse(request, connection);
+            HttpRequest request = HttpRequest.from(connectionContext.getReadBuffer());
+
+            buildResponse(request, connectionContext);
         } catch (HttpException e) {
             sendError(e.getStatusCode());
         }
@@ -57,21 +56,23 @@ public class HttpProtocolHandler {
 
     }
 
-    private void buildResponse(HttpRequest request, Connection connection) {
+    private void buildResponse(HttpRequest request, ConnectionContext connectionContext) {
 
         final HttpResponse response = new HttpResponse(request.getVersion());
-        if (HttpMethod.GET.equals(request.getMethod())) {
-            doGet(request, response, connection);
-        } else {
-            sendError(StatusCode.NOT_IMPLEMENTED);
 
+        switch (request.getMethod()) {
 
+            case GET:
+                doGet(request, response, connectionContext);
+                break;
+            default:
+                sendError(StatusCode.NOT_IMPLEMENTED);
         }
 
 
     }
 
-    private void doGet(HttpRequest request, HttpResponse response, Connection connection) {
+    private void doGet(HttpRequest request, HttpResponse response, ConnectionContext connectionContext) {
 
         String requestPath = request.getRequestPath();
         String sanitizedRequestPath = HttpUtils.sanitizeRequestPath(request.getRequestPath());
@@ -80,7 +81,7 @@ public class HttpProtocolHandler {
         try {
             final Path realRequestPath = rootPath.resolve(sanitizedRequestPath).toRealPath();
             if (Files.notExists(realRequestPath) || Files.isHidden(realRequestPath)) {
-                sendNotFound(connection, response, requestPath);
+                sendNotFound(connectionContext, response, requestPath);
 
             }
 
@@ -89,14 +90,14 @@ public class HttpProtocolHandler {
                 //By redirecting to the directory path suffixed by "/"
                 //we let the browser handle the path browsing and the parent->child relation
                 if (requestPath.endsWith("/"))
-                    sendListing(connection, response, realRequestPath);
+                    sendListing(connectionContext, response, realRequestPath);
                 else
-                    sendRedirect(connection, response, requestPath + "/");
+                    sendRedirect(connectionContext, response, requestPath + "/");
                 return;
             }
 
             if (Files.isRegularFile(realRequestPath)) {
-                sendFile(connection, response, realRequestPath);
+                sendFile(connectionContext, response, realRequestPath);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -105,23 +106,23 @@ public class HttpProtocolHandler {
 
     }
 
-    private void sendNotFound(Connection connection, HttpResponse response, String requestPath) throws Exception {
+    private void sendNotFound(ConnectionContext connectionContext, HttpResponse response, String requestPath) throws Exception {
 
         response.setStatusCode(StatusCode.NOT_FOUND);
-        connection.write(response.toByteBuffer());
+        connectionContext.write(response.toByteBuffer());
 
     }
 
-    private void sendRedirect(Connection connection, HttpResponse response, String requestPath) throws Exception {
+    private void sendRedirect(ConnectionContext connectionContext, HttpResponse response, String requestPath) throws Exception {
 
         response.setStatusCode(StatusCode.FOUND);
         response.setHeader(HttpResponseHeader.LOCATION, requestPath);
-        connection.write(response.toByteBuffer());
+        connectionContext.write(response.toByteBuffer());
 
 
     }
 
-    private void sendFile(Connection connection, HttpResponse response, Path file) throws Exception {
+    private void sendFile(ConnectionContext connectionContext, HttpResponse response, Path file) throws Exception {
 
         response.setStatusCode(StatusCode.OK);
         response.setHeader(HttpResponseHeader.CONTENT_TYPE, "application/octet-stream");
@@ -140,10 +141,10 @@ public class HttpProtocolHandler {
     }
 
 
-    private void sendListing(Connection connection, HttpResponse response, Path realRequestPath) {
+    private void sendListing(ConnectionContext connectionContext, HttpResponse response, Path realRequestPath) {
         response.setStatusCode(StatusCode.OK);
         response.setHeader(HttpResponseHeader.CONTENT_TYPE, "text/html; charset=UTF-8");
-        response.setHeader(HttpResponseHeader.CONNECTION, "close");
+        response.setHeader(HttpResponseHeader.CONNECTION, "keep-alive");
 
 
         final Path relativeFilePath = rootPath.relativize(realRequestPath);
@@ -200,9 +201,9 @@ public class HttpProtocolHandler {
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, String.valueOf(response.content().length()));
 
         try {
-            connection.write(response.toByteBuffer());
+            connectionContext.write(response.toByteBuffer());
         } catch (Exception e) {
-            e.printStackTrace();
+
         }
 
 

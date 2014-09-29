@@ -54,6 +54,7 @@ public class HttpRequest {
      */
     public static final Pattern HEADER_VALUE_PATTERN = Pattern.compile(":");
     private static final Logger logger = LoggerFactory.getLogger(HttpRequest.class);
+    private static boolean keepAlive = false;
     private final Map<HttpRequestHeader, String> headers;
     private HttpMethod method;
     private HttpVersion version;
@@ -85,7 +86,7 @@ public class HttpRequest {
                     .map((String httpHeaderField) -> HEADER_VALUE_PATTERN.split(httpHeaderField))
                     .filter((httpFieldParts) -> httpFieldParts.length == 2)
                     .collect(Collectors.toMap((httpFieldParts) -> HttpRequestHeader.fromHeader(httpFieldParts[0]), (httpFieldParts) -> httpFieldParts[1].trim()));
-
+            keepAlive = "keep-alive".equalsIgnoreCase(httpHeadersMap.get(HttpRequestHeader.CONNECTION));
 
             return new HttpRequest(httpHeadersFields[0], httpHeadersMap);
 
@@ -157,4 +158,12 @@ public class HttpRequest {
     private void parseQuery(String query) {
 
     }
+
+
+    public boolean isKeepAlive() {
+
+        return keepAlive;
+    }
+
+
 }

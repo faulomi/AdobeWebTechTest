@@ -1,14 +1,13 @@
 package fr.meuret.webtesttech.nio;
 
 import fr.meuret.webtesttech.conf.HttpConfiguration;
-import fr.meuret.webtesttech.handlers.Connection;
+import fr.meuret.webtesttech.handlers.ConnectionContext;
 import fr.meuret.webtesttech.handlers.HttpProtocolHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
@@ -24,26 +23,18 @@ public class IODispatcher {
     private static final Logger logger = LoggerFactory.getLogger(IODispatcher.class);
 
     private final ConcurrentLinkedQueue<ByteBuffer> byteBufferPool = new ConcurrentLinkedQueue<>();
-    private final AsynchronousChannelGroup serverChannelGroup;
+
     private final AsynchronousServerSocketChannel serverSocketChannel;
     private final HttpConfiguration configuration;
     private HttpProtocolHandler protocolHandler;
     private CountDownLatch shutdownSignal = new CountDownLatch(1);
 
-    public IODispatcher(AsynchronousServerSocketChannel serverSocketChannel, AsynchronousChannelGroup serverChannelGroup, HttpConfiguration configuration) {
+
+    public IODispatcher(AsynchronousServerSocketChannel serverSocketChannel, HttpConfiguration configuration) {
         this.serverSocketChannel = serverSocketChannel;
         this.configuration = configuration;
-        this.serverChannelGroup = serverChannelGroup;
     }
 
-    private ByteBuffer getBuffer() {
-        final ByteBuffer buffer = byteBufferPool.poll();
-
-        if (buffer == null)
-            return ByteBuffer.allocateDirect(8192);
-        return buffer;
-
-    }
 
     public void registerHandler(HttpProtocolHandler protocolHandler) {
 
@@ -69,12 +60,13 @@ public class IODispatcher {
 
                 try {
                     logger.debug("New client accepted: {}", client.getRemoteAddress());
+                    //Create new Context
+                    final ConnectionContext connectionContext = new ConnectionContext(client, IODispatcher.this);
+                    read(connectionContext);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                //Create new Context
-                final Connection context = new Connection(client, IODispatcher.this);
-                read(context);
+
 
             }
 
@@ -86,6 +78,7 @@ public class IODispatcher {
 
         try {
             shutdownSignal.await();
+            stop();
         } catch (InterruptedException e) {
             stop();
             Thread.currentThread().interrupt();
@@ -94,25 +87,38 @@ public class IODispatcher {
 
     }
 
-    public void read(final Connection connection) {
+    public void read(final ConnectionContext connectionContext) {
 
 
-        final ByteBuffer buffer = getBuffer();
-        connection.getClient().read(buffer, buffer, new CompletionHandler<Integer, ByteBuffer>() {
+        connectionContext.getClient().read(connectionContext.getReadBuffer(), connectionContext, new CompletionHandler<Integer, ConnectionContext>() {
             @Override
-            public void completed(Integer result, ByteBuffer in) {
+            public void completed(Integer bytesRead, ConnectionContext connectionContext) {
                 try {
-                    logger.debug("Datas received from the client : {}", connection.getClient().getRemoteAddress());
+                    logger.debug("Datas received from the client : {}", connectionContext.getClient().getRemoteAddress());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                in.flip();
-                protocolHandler.onMessage(connection, in);
+
+                if (bytesRead < 0) {
+                    //Client closed the connectionContext
+                    try {
+                        connectionContext.getClient().close();
+                    } catch (IOException e) {
+                        logger.error("Unable to close the client socket channel : {}", e);
+                    }
+
+                } else {
+                    connectionContext.getReadBuffer().flip();
+                    protocolHandler.onMessage(connectionContext);
+
+                }
+
 
             }
 
             @Override
-            public void failed(Throwable exc, ByteBuffer attachment) {
+            public void failed(Throwable exc, ConnectionContext connectionContext) {
+
 
             }
         });
@@ -120,13 +126,13 @@ public class IODispatcher {
     }
 
 
-    public void write(Connection connection, ByteBuffer buffer) {
+    public void write(ConnectionContext connectionContext, ByteBuffer buffer) {
 
-        connection.getClient().write(buffer, connection, new CompletionHandler<Integer, Connection>() {
+        connectionContext.getClient().write(buffer, connectionContext, new CompletionHandler<Integer, ConnectionContext>() {
             @Override
-            public void completed(Integer bytesWritten, Connection connection) {
+            public void completed(Integer bytesWritten, ConnectionContext connectionContext) {
                 try {
-                    logger.debug("Some bytes have been sent to the client {}", connection.getClient().getRemoteAddress());
+                    logger.debug("Some bytes have been sent to the client {}", connectionContext.getClient().getRemoteAddress());
                     if (buffer.hasRemaining())
                         logger.debug("Mais ce n'est pas fini!");
                 } catch (IOException e) {
@@ -136,7 +142,7 @@ public class IODispatcher {
             }
 
             @Override
-            public void failed(Throwable exc, Connection connection) {
+            public void failed(Throwable exc, ConnectionContext connectionContext) {
 
             }
         });
