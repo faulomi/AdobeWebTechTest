@@ -1,6 +1,7 @@
 package fr.meuret.webtesttech.http.response;
 
 import fr.meuret.webtesttech.http.HttpVersion;
+import fr.meuret.webtesttech.util.StringUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -27,7 +28,6 @@ public class HttpResponse {
     private StatusCode statusCode;
     private String statusLine;
     private HttpVersion httpVersion;
-    private ByteBuffer payload;
 
     public HttpResponse(HttpVersion version) {
         headers.put(HttpResponseHeader.DATE, DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneId.of("GMT"))));
@@ -41,9 +41,6 @@ public class HttpResponse {
         return httpVersion + " " + statusCode;
     }
 
-    public void setPayload(ByteBuffer payload) {
-        this.payload = payload;
-    }
 
     public void setHeader(HttpResponseHeader httpResponseHeader, String value) {
         this.headers.put(httpResponseHeader, value);
@@ -71,22 +68,17 @@ public class HttpResponse {
 
         //FOR HTTP 1.1, default charset is ISO-8859-1
         final CharsetEncoder responseEncoder = Charset.forName(StandardCharsets.ISO_8859_1.displayName()).newEncoder();
-        final StringJoiner statusLineAndHeaders = new StringJoiner("\r\n", "", "\r\n");
-        statusLineAndHeaders.add(buildStatusLine(httpVersion, statusCode));
+        final StringJoiner response = new StringJoiner(StringUtils.CRLF, "", StringUtils.CRLF);
+        response.add(buildStatusLine(httpVersion, statusCode));
 
-        headers.forEach((header, value) -> statusLineAndHeaders.add(String.join(": ", header.getHeaderName(), value)));
+        headers.forEach((header, value) -> response.add(String.join(": ", header.getHeaderName(), value)));
 
-        if (payload != null) {
-            ByteBuffer responseBuffer = responseEncoder.encode(CharBuffer.wrap(statusLineAndHeaders.add("").toString()));
-            ByteBuffer completeResponseBuffer = ByteBuffer.allocate(responseBuffer.capacity() + payload.capacity() + 4);
-            completeResponseBuffer.put(responseBuffer).put(payload).putChar('\r').putChar('\n');
-            completeResponseBuffer.flip();
-            return completeResponseBuffer;
-        } else if (content.length() > 0) {
-            String completeResponse = String.join("", statusLineAndHeaders.add("").toString(), content.append("\r\n").toString());
-            ByteBuffer responseBuffer = responseEncoder.encode(CharBuffer.wrap(completeResponse.toString()));
-            return responseBuffer;
+
+        if (content.length() > 0) {
+            response.add(StringUtils.CRLF).add(content);
         }
-        return null;
+        final ByteBuffer responseBuffer = responseEncoder.encode(CharBuffer.wrap(response.toString()));
+        return responseBuffer;
+
     }
 }
