@@ -3,6 +3,7 @@ package fr.meuret.webtesttech.conf;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -129,7 +130,11 @@ public class HttpConfiguration {
             //Check rootPath
             if (Files.notExists(rootPath) || !Files.isDirectory(rootPath))
                 throw new IllegalArgumentException("Invalid value for rootpath directive : " + rootPath);
-
+            try {
+                rootPath = rootPath.toRealPath();
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Invalid value for rootpath directive : " + rootPath, e);
+            }
             if (port < MIN_PORT_NUMBER || port > MAX_PORT_NUMBER)
                 throw new IllegalArgumentException("Invalid value for port number. Valid range is [" + MIN_PORT_NUMBER + ", " + MAX_PORT_NUMBER + "]");
 

@@ -28,19 +28,17 @@ public class HttpProtocolHandler {
 
 
     public HttpProtocolHandler(Path rootPath) {
-
-
         this.rootPath = rootPath;
     }
 
 
-    public void onMessage(ConnectionContext connectionContext) {
+    public void onMessage(Session session) {
 
 
         try {
-            HttpRequest request = HttpRequest.from(connectionContext.getReadBuffer());
+            HttpRequest request = HttpRequest.from(session.getReadBuffer());
 
-            buildResponse(request, connectionContext);
+            buildResponse(request, session);
         } catch (HttpException e) {
             sendError(e.getStatusCode());
         }
@@ -56,14 +54,14 @@ public class HttpProtocolHandler {
 
     }
 
-    private void buildResponse(HttpRequest request, ConnectionContext connectionContext) {
+    private void buildResponse(HttpRequest request, Session session) {
 
         final HttpResponse response = new HttpResponse(request.getVersion());
 
         switch (request.getMethod()) {
 
             case GET:
-                doGet(request, response, connectionContext);
+                doGet(request, response, session);
                 break;
             default:
                 sendError(StatusCode.NOT_IMPLEMENTED);
@@ -72,32 +70,38 @@ public class HttpProtocolHandler {
 
     }
 
-    private void doGet(HttpRequest request, HttpResponse response, ConnectionContext connectionContext) {
+    private void doGet(HttpRequest request, HttpResponse response, Session session) {
 
         String requestPath = request.getRequestPath();
         String sanitizedRequestPath = HttpUtils.sanitizeRequestPath(request.getRequestPath());
 
 
         try {
-            final Path realRequestPath = rootPath.resolve(sanitizedRequestPath).toRealPath();
-            if (Files.notExists(realRequestPath) || Files.isHidden(realRequestPath)) {
-                sendNotFound(connectionContext, response, requestPath);
-
+            Path resolvedRequestPath = rootPath.resolve(sanitizedRequestPath);
+            if (Files.notExists(resolvedRequestPath) || Files.isHidden(resolvedRequestPath)) {
+                sendNotFound(session, response, requestPath);
+                return;
             }
+            //At this time, we know that real request path exists
+            final Path realRequestPath = resolvedRequestPath.toRealPath();
 
             if (Files.isDirectory(realRequestPath)) {
 
                 //By redirecting to the directory path suffixed by "/"
                 //we let the browser handle the path browsing and the parent->child relation
-                if (requestPath.endsWith("/"))
-                    sendListing(connectionContext, response, realRequestPath);
-                else
-                    sendRedirect(connectionContext, response, requestPath + "/");
-                return;
+                if (requestPath.endsWith("/")) {
+                    sendListing(session, response, realRequestPath);
+                    return;
+                } else {
+                    sendRedirect(session, response, requestPath + "/");
+                    return;
+                }
+
             }
 
             if (Files.isRegularFile(realRequestPath)) {
-                sendFile(connectionContext, response, realRequestPath);
+                sendFile(session, response, realRequestPath);
+                return;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -106,47 +110,50 @@ public class HttpProtocolHandler {
 
     }
 
-    private void sendNotFound(ConnectionContext connectionContext, HttpResponse response, String requestPath) throws Exception {
+    private void sendNotFound(Session session, HttpResponse response, String requestPath) throws Exception {
 
         response.setStatusCode(StatusCode.NOT_FOUND);
-        connectionContext.write(response.toByteBuffer());
+        session.write(response.toByteBuffer());
 
     }
 
-    private void sendRedirect(ConnectionContext connectionContext, HttpResponse response, String requestPath) throws Exception {
+    private void sendRedirect(Session session, HttpResponse response, String requestPath) throws Exception {
 
         response.setStatusCode(StatusCode.FOUND);
         response.setHeader(HttpResponseHeader.LOCATION, requestPath);
-        connectionContext.write(response.toByteBuffer());
+        session.write(response.toByteBuffer());
 
 
     }
 
-    private void sendFile(ConnectionContext connectionContext, HttpResponse response, Path file) throws Exception {
+    private void sendFile(Session session, HttpResponse response, Path file) throws Exception {
 
         response.setStatusCode(StatusCode.OK);
-        response.setHeader(HttpResponseHeader.CONTENT_TYPE, "application/octet-stream");
+        response.setHeader(HttpResponseHeader.CONTENT_TYPE, Files.probeContentType(file));
         response.setHeader(HttpResponseHeader.CONNECTION, "close");
+
 
         try (FileChannel fileChannel = FileChannel.open(file, StandardOpenOption.READ)) {
 
 
-            MappedByteBuffer mappedFile = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, fileChannel.size());
+            long size = Math.min(Integer.MAX_VALUE, fileChannel.size());
+            MappedByteBuffer mappedFile = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, size);
+
+
             response.setHeader(HttpResponseHeader.CONTENT_LENGTH, String.valueOf(fileChannel.size()));
-
-
+            session.write(response.toByteBuffer());
         }
 
 
     }
 
 
-    private void sendListing(ConnectionContext connectionContext, HttpResponse response, Path realRequestPath) {
+    private void sendListing(Session session, HttpResponse response, Path realRequestPath) throws IOException {
         response.setStatusCode(StatusCode.OK);
         response.setHeader(HttpResponseHeader.CONTENT_TYPE, "text/html; charset=UTF-8");
         response.setHeader(HttpResponseHeader.CONNECTION, "keep-alive");
 
-
+        //In case of disk mirroring, or just links, we need to know the real rootPath
         final Path relativeFilePath = rootPath.relativize(realRequestPath);
 
 
@@ -201,7 +208,7 @@ public class HttpProtocolHandler {
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, String.valueOf(response.content().length()));
 
         try {
-            connectionContext.write(response.toByteBuffer());
+            session.write(response.toByteBuffer());
         } catch (Exception e) {
 
         }

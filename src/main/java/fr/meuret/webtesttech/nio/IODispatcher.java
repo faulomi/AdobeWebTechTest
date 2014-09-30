@@ -1,8 +1,8 @@
 package fr.meuret.webtesttech.nio;
 
 import fr.meuret.webtesttech.conf.HttpConfiguration;
-import fr.meuret.webtesttech.handlers.ConnectionContext;
 import fr.meuret.webtesttech.handlers.HttpProtocolHandler;
+import fr.meuret.webtesttech.handlers.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,8 +61,8 @@ public class IODispatcher {
                 try {
                     logger.debug("New client accepted: {}", client.getRemoteAddress());
                     //Create new Context
-                    final ConnectionContext connectionContext = new ConnectionContext(client, IODispatcher.this);
-                    read(connectionContext);
+                    final Session session = new Session(client, IODispatcher.this);
+                    read(session);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -87,29 +87,29 @@ public class IODispatcher {
 
     }
 
-    public void read(final ConnectionContext connectionContext) {
+    public void read(final Session session) {
 
 
-        connectionContext.getClient().read(connectionContext.getReadBuffer(), connectionContext, new CompletionHandler<Integer, ConnectionContext>() {
+        session.getClient().read(session.getReadBuffer(), session, new CompletionHandler<Integer, Session>() {
             @Override
-            public void completed(Integer bytesRead, ConnectionContext connectionContext) {
+            public void completed(Integer bytesRead, Session session) {
                 try {
-                    logger.debug("Datas received from the client : {}", connectionContext.getClient().getRemoteAddress());
+                    logger.debug("Datas received from the client : {}", session.getClient().getRemoteAddress());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
 
                 if (bytesRead < 0) {
-                    //Client closed the connectionContext
+                    //Client closed the session
                     try {
-                        connectionContext.getClient().close();
+                        session.getClient().close();
                     } catch (IOException e) {
                         logger.error("Unable to close the client socket channel : {}", e);
                     }
 
                 } else {
-                    connectionContext.getReadBuffer().flip();
-                    protocolHandler.onMessage(connectionContext);
+                    session.getReadBuffer().flip();
+                    protocolHandler.onMessage(session);
 
                 }
 
@@ -117,7 +117,7 @@ public class IODispatcher {
             }
 
             @Override
-            public void failed(Throwable exc, ConnectionContext connectionContext) {
+            public void failed(Throwable exc, Session session) {
 
 
             }
@@ -126,13 +126,13 @@ public class IODispatcher {
     }
 
 
-    public void write(ConnectionContext connectionContext, ByteBuffer buffer) {
+    public void write(Session session, ByteBuffer buffer) {
 
-        connectionContext.getClient().write(buffer, connectionContext, new CompletionHandler<Integer, ConnectionContext>() {
+        session.getClient().write(buffer, session, new CompletionHandler<Integer, Session>() {
             @Override
-            public void completed(Integer bytesWritten, ConnectionContext connectionContext) {
+            public void completed(Integer bytesWritten, Session session) {
                 try {
-                    logger.debug("Some bytes have been sent to the client {}", connectionContext.getClient().getRemoteAddress());
+                    logger.debug("Some bytes have been sent to the client {}", session.getClient().getRemoteAddress());
                     if (buffer.hasRemaining())
                         logger.debug("Mais ce n'est pas fini!");
                 } catch (IOException e) {
@@ -142,7 +142,7 @@ public class IODispatcher {
             }
 
             @Override
-            public void failed(Throwable exc, ConnectionContext connectionContext) {
+            public void failed(Throwable exc, Session session) {
 
             }
         });

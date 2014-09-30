@@ -11,17 +11,17 @@ import java.nio.channels.AsynchronousSocketChannel;
 /**
  * Created by Jérôme on 21/09/2014.
  */
-public class ConnectionContext {
+public class Session {
 
 
-    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ConnectionContext.class);
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Session.class);
     private final AsynchronousSocketChannel client;
     private final IODispatcher ioDispatcher;
     private final ByteBuffer readBuffer = ByteBuffer.allocateDirect(8192);
     private String remoteAddress;
 
 
-    public ConnectionContext(AsynchronousSocketChannel client, IODispatcher ioDispatcher) {
+    public Session(AsynchronousSocketChannel client, IODispatcher ioDispatcher) {
         this.client = client;
         this.ioDispatcher = ioDispatcher;
         try {
