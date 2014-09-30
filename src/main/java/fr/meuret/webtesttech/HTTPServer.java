@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
-import java.util.concurrent.Executors;
 
 /**
  * Created by Jérôme on 24/08/2014.
@@ -58,7 +57,7 @@ public class HttpServer {
 
     public void bind(int port) throws IOException {
 
-        serverChannelGroup = AsynchronousChannelGroup.withThreadPool(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()));
+
         serverSocketChannel = AsynchronousServerSocketChannel.open();
         serverSocketChannel.bind(new InetSocketAddress(port));
 
@@ -67,7 +66,7 @@ public class HttpServer {
 
     public void start() throws IOException {
         bind(configuration.getPort());
-        final IODispatcher dispatcher = new IODispatcher(serverSocketChannel, serverChannelGroup, configuration);
+        final IODispatcher dispatcher = new IODispatcher(serverSocketChannel, configuration);
         final HttpProtocolHandler httpHandler = new HttpProtocolHandler(configuration.getRootPath());
 
         dispatcher.registerHandler(httpHandler);
