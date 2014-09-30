@@ -7,12 +7,16 @@ import fr.meuret.webtesttech.http.response.HttpResponse;
 import fr.meuret.webtesttech.http.response.HttpResponseHeader;
 import fr.meuret.webtesttech.http.response.StatusCode;
 import fr.meuret.webtesttech.util.HttpUtils;
+import fr.meuret.webtesttech.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.activation.MimetypesFileTypeMap;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 
 /**
@@ -34,10 +38,8 @@ public class HttpProtocolHandler {
 
     public void onMessage(Session session) {
 
-
         try {
             HttpRequest request = HttpRequest.from(session.getReadBuffer());
-
             buildResponse(request, session);
         } catch (HttpException e) {
             sendError(e.getStatusCode());
@@ -130,7 +132,7 @@ public class HttpProtocolHandler {
 
         response.setStatusCode(StatusCode.OK);
 
-        String contentType = Files.probeContentType(file);
+        String contentType = MimetypesFileTypeMap.getDefaultFileTypeMap().getContentType(file.toFile());
         if (contentType == null)
             contentType = "application/octet-stream";
 
@@ -143,11 +145,15 @@ public class HttpProtocolHandler {
 
             long size = Math.min(Integer.MAX_VALUE, fileChannel.size());
             MappedByteBuffer mappedFile = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, size);
-
-
             response.setHeader(HttpResponseHeader.CONTENT_LENGTH, String.valueOf(fileChannel.size()));
-            response.setPayload(mappedFile);
+            //Write status and headers
             session.write(response.toByteBuffer());
+            //Write file
+            session.write(ByteBuffer.wrap(StringUtils.CRLF.getBytes(StandardCharsets.ISO_8859_1)));
+            session.write(mappedFile);
+            session.write(ByteBuffer.wrap(StringUtils.CRLF.getBytes(StandardCharsets.ISO_8859_1)));
+
+
         }
 
 
