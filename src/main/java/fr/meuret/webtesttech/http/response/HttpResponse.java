@@ -82,11 +82,11 @@ public class HttpResponse {
             completeResponseBuffer.put(responseBuffer).put(payload).putChar('\r').putChar('\n');
             completeResponseBuffer.flip();
             return completeResponseBuffer;
-        } else {
+        } else if (content.length() > 0) {
             String completeResponse = String.join("", statusLineAndHeaders.add("").toString(), content.append("\r\n").toString());
             ByteBuffer responseBuffer = responseEncoder.encode(CharBuffer.wrap(completeResponse.toString()));
             return responseBuffer;
         }
-
+        return null;
     }
 }

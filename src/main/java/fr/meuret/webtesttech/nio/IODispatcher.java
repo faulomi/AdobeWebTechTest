@@ -44,7 +44,17 @@ public class IODispatcher {
 
 
     public void stop() {
-        shutdownSignal.countDown();
+
+        try {
+            serverSocketChannel.close();
+        } catch (IOException e) {
+           logger.error("Unable to close the server socket {}, e");
+        }
+        finally {
+
+            shutdownSignal.countDown();
+        }
+
     }
 
 
@@ -56,15 +66,13 @@ public class IODispatcher {
             public void completed(AsynchronousSocketChannel client, Object attachment) {
                 //Accept further connection
                 serverSocketChannel.accept(null, this);
-
-
                 try {
                     logger.debug("New client accepted: {}", client.getRemoteAddress());
-                    //Create new Context
+                    //Create new Session
                     final Session session = new Session(client, IODispatcher.this);
                     read(session);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    logger.error("Error when getting the client remote address : {}", e);
                 }
 
 
@@ -135,6 +143,9 @@ public class IODispatcher {
                     logger.debug("Some bytes have been sent to the client {}", session.getClient().getRemoteAddress());
                     if (buffer.hasRemaining())
                         logger.debug("Mais ce n'est pas fini!");
+
+
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

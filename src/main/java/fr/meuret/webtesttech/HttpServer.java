@@ -22,7 +22,7 @@ public class HttpServer {
     private static Logger logger = LoggerFactory.getLogger(HttpServer.class);
     private final HttpConfiguration configuration;
     private AsynchronousServerSocketChannel serverSocketChannel;
-    private AsynchronousChannelGroup serverChannelGroup;
+
 
     public HttpServer(HttpConfiguration configuration) {
 

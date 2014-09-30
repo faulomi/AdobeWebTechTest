@@ -104,7 +104,7 @@ public class HttpProtocolHandler {
                 return;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            sendError(StatusCode.INTERNAL_SERVER_ERROR);
         }
 
 
@@ -129,7 +129,12 @@ public class HttpProtocolHandler {
     private void sendFile(Session session, HttpResponse response, Path file) throws Exception {
 
         response.setStatusCode(StatusCode.OK);
-        response.setHeader(HttpResponseHeader.CONTENT_TYPE, Files.probeContentType(file));
+
+        String contentType = Files.probeContentType(file);
+        if (contentType == null)
+            contentType = "application/octet-stream";
+
+        response.setHeader(HttpResponseHeader.CONTENT_TYPE, contentType);
         response.setHeader(HttpResponseHeader.CONNECTION, "close");
 
 
@@ -141,6 +146,7 @@ public class HttpProtocolHandler {
 
 
             response.setHeader(HttpResponseHeader.CONTENT_LENGTH, String.valueOf(fileChannel.size()));
+            response.setPayload(mappedFile);
             session.write(response.toByteBuffer());
         }
 
@@ -151,7 +157,7 @@ public class HttpProtocolHandler {
     private void sendListing(Session session, HttpResponse response, Path realRequestPath) throws IOException {
         response.setStatusCode(StatusCode.OK);
         response.setHeader(HttpResponseHeader.CONTENT_TYPE, "text/html; charset=UTF-8");
-        response.setHeader(HttpResponseHeader.CONNECTION, "keep-alive");
+        response.setHeader(HttpResponseHeader.CONNECTION, "close");
 
         //In case of disk mirroring, or just links, we need to know the real rootPath
         final Path relativeFilePath = rootPath.relativize(realRequestPath);
@@ -207,10 +213,11 @@ public class HttpProtocolHandler {
         response.content().append("</ul></body></html>\r\n");
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, String.valueOf(response.content().length()));
 
+
         try {
             session.write(response.toByteBuffer());
         } catch (Exception e) {
-
+            sendError(StatusCode.INTERNAL_SERVER_ERROR);
         }
 
 

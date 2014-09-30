@@ -21,6 +21,7 @@ public class Session {
     private String remoteAddress;
 
 
+
     public Session(AsynchronousSocketChannel client, IODispatcher ioDispatcher) {
         this.client = client;
         this.ioDispatcher = ioDispatcher;
@@ -45,4 +46,6 @@ public class Session {
     public ByteBuffer getReadBuffer() {
         return readBuffer;
     }
+
+
 }
