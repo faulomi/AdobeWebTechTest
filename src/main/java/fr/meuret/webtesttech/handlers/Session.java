@@ -18,22 +18,26 @@ public class Session {
     private final AsynchronousSocketChannel client;
     private final IODispatcher ioDispatcher;
     private final ByteBuffer readBuffer = ByteBuffer.allocateDirect(8192);
-    private String remoteAddress;
-
-
-
     public Session(AsynchronousSocketChannel client, IODispatcher ioDispatcher) {
         this.client = client;
         this.ioDispatcher = ioDispatcher;
         try {
             this.remoteAddress = client.getRemoteAddress().toString();
             client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
+            client.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
         } catch (IOException e) {
             logger.error("Unable to set Option for client socket channel : {}", e);
         }
 
     }
 
+
+
+    private String remoteAddress;
+
+    public String getRemoteAddress() {
+        return remoteAddress;
+    }
 
     public AsynchronousSocketChannel getClient() {
         return client;

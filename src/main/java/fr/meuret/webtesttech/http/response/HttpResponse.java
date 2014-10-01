@@ -70,12 +70,13 @@ public class HttpResponse {
         final CharsetEncoder responseEncoder = Charset.forName(StandardCharsets.ISO_8859_1.displayName()).newEncoder();
         final StringJoiner response = new StringJoiner(StringUtils.CRLF, "", StringUtils.CRLF);
         response.add(buildStatusLine(httpVersion, statusCode));
-
         headers.forEach((header, value) -> response.add(String.join(": ", header.getHeaderName(), value)));
 
 
+        //Delimiter
+        response.add("");
         if (content.length() > 0) {
-            response.add(StringUtils.CRLF).add(content);
+            response.add(content);
         }
         final ByteBuffer responseBuffer = responseEncoder.encode(CharBuffer.wrap(response.toString()));
         return responseBuffer;

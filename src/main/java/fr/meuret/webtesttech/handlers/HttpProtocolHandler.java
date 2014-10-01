@@ -115,6 +115,10 @@ public class HttpProtocolHandler {
     private void sendNotFound(Session session, HttpResponse response, String requestPath) throws Exception {
 
         response.setStatusCode(StatusCode.NOT_FOUND);
+
+        response.content().append("<!DOCTYPE HTML>").append("<html><head><title>Not Found</title></head><body>").append(StringUtils.CRLF).append("<h1>Not Found!!!</h1>").append(StringUtils.CRLF).append("</body></html>");
+
+        response.setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(response.content().length()));
         session.write(response.toByteBuffer());
 
     }
@@ -123,6 +127,7 @@ public class HttpProtocolHandler {
 
         response.setStatusCode(StatusCode.FOUND);
         response.setHeader(HttpResponseHeader.LOCATION, requestPath);
+        response.setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(0));
         session.write(response.toByteBuffer());
 
 
@@ -149,9 +154,8 @@ public class HttpProtocolHandler {
             //Write status and headers
             session.write(response.toByteBuffer());
             //Write file
-            session.write(ByteBuffer.wrap(StringUtils.CRLF.getBytes(StandardCharsets.ISO_8859_1)));
             session.write(mappedFile);
-            session.write(ByteBuffer.wrap(StringUtils.CRLF.getBytes(StandardCharsets.ISO_8859_1)));
+
 
 
         }
@@ -176,20 +180,20 @@ public class HttpProtocolHandler {
             filename = relativeFilePath.getFileName().toString();
 
 
-        response.content().append("<!DOCTYPE html>\r\n")
+        response.content().append("<!DOCTYPE html>").append(StringUtils.CRLF)
                 .append("<html><head><title>")
                 .append("Listing of: ");
 
 
         response.content().append(filename);
-        response.content().append("</title></head><body>\r\n");
+        response.content().append("</title></head><body>").append(StringUtils.CRLF);
 
         response.content().append("<h3>Listing of: ");
         response.content().append(filename);
-        response.content().append("</h3>\r\n");
+        response.content().append("</h3>").append(StringUtils.CRLF);
 
         response.content().append("<ul>");
-        response.content().append("<li><a href=\"../\">..</a></li>\r\n");
+        response.content().append("<li><a href=\"../\">..</a></li>").append(StringUtils.CRLF);
 
         logger.info("Browsing the path : {}", realRequestPath);
 
@@ -221,6 +225,7 @@ public class HttpProtocolHandler {
 
 
         try {
+            logger.debug("HTTP WRITE: content-length={} : '{}", response.content().length(), session.getRemoteAddress());
             session.write(response.toByteBuffer());
         } catch (Exception e) {
             sendError(StatusCode.INTERNAL_SERVER_ERROR);

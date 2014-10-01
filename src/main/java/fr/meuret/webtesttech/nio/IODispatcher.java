@@ -67,7 +67,7 @@ public class IODispatcher {
                 //Accept further connection
                 serverSocketChannel.accept(null, this);
                 try {
-                    logger.debug("New client accepted: {}", client.getRemoteAddress());
+                    logger.debug("ACCEPT: {}", client.getRemoteAddress());
                     //Create new Session
                     final Session session = new Session(client, IODispatcher.this);
                     read(session);
@@ -102,7 +102,7 @@ public class IODispatcher {
             @Override
             public void completed(Integer bytesRead, Session session) {
                 try {
-                    logger.debug("Datas received from the client : {}", session.getClient().getRemoteAddress());
+                    logger.debug("READ {} bytes : {}",bytesRead, session.getClient().getRemoteAddress());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -140,11 +140,9 @@ public class IODispatcher {
             @Override
             public void completed(Integer bytesWritten, Session session) {
                 try {
-                    logger.debug("Some bytes have been sent to the client {}", session.getClient().getRemoteAddress());
+                    logger.debug("WRITE {} bytes: {}",bytesWritten, session.getClient().getRemoteAddress());
                     if (buffer.hasRemaining())
                         logger.debug("Mais ce n'est pas fini!");
-
-
 
                 } catch (IOException e) {
                     e.printStackTrace();
