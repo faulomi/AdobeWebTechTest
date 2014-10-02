@@ -48,9 +48,8 @@ public class IODispatcher {
         try {
             serverSocketChannel.close();
         } catch (IOException e) {
-           logger.error("Unable to close the server socket {}, e");
-        }
-        finally {
+            logger.error("Unable to close the server socket {}, e");
+        } finally {
 
             shutdownSignal.countDown();
         }
@@ -102,7 +101,7 @@ public class IODispatcher {
             @Override
             public void completed(Integer bytesRead, Session session) {
                 try {
-                    logger.debug("READ {} bytes : {}",bytesRead, session.getClient().getRemoteAddress());
+                    logger.debug("READ {} bytes : {}", bytesRead, session.getClient().getRemoteAddress());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -139,14 +138,12 @@ public class IODispatcher {
         session.getClient().write(buffer, session, new CompletionHandler<Integer, Session>() {
             @Override
             public void completed(Integer bytesWritten, Session session) {
-                try {
-                    logger.debug("WRITE {} bytes: {}",bytesWritten, session.getClient().getRemoteAddress());
-                    if (buffer.hasRemaining())
-                        logger.debug("Mais ce n'est pas fini!");
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                    if (buffer.hasRemaining()){
+                        session.getClient().write(buffer, session, this);
+
+
+                    }
 
             }
 
