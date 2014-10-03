@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
 
 /**
@@ -76,8 +75,6 @@ public class HttpServer {
 
 
     public void stop() {
-
-
         try {
             if (serverSocketChannel.isOpen())
                 serverSocketChannel.close();

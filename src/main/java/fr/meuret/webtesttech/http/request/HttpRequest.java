@@ -56,14 +56,17 @@ public class HttpRequest {
     private static final Logger logger = LoggerFactory.getLogger(HttpRequest.class);
     private static boolean keepAlive = false;
     private final Map<HttpRequestHeader, String> headers;
+    private Map<String, String> parameters;
+
     private HttpMethod method;
     private HttpVersion version;
     private String requestPath;
-    private boolean isMalformed;
+
 
     public HttpRequest(String requestLine, Map<HttpRequestHeader, String> headers) {
         parseRequestLine(requestLine);
         this.headers = Collections.unmodifiableMap(headers);
+        setKeepAlive();
 
     }
 
@@ -86,7 +89,7 @@ public class HttpRequest {
                     .map((String httpHeaderField) -> HEADER_VALUE_PATTERN.split(httpHeaderField))
                     .filter((httpFieldParts) -> httpFieldParts.length == 2)
                     .collect(Collectors.toMap((httpFieldParts) -> HttpRequestHeader.fromHeader(httpFieldParts[0]), (httpFieldParts) -> httpFieldParts[1].trim()));
-            keepAlive = "keep-alive".equalsIgnoreCase(httpHeadersMap.get(HttpRequestHeader.CONNECTION));
+
 
             return new HttpRequest(httpHeadersFields[0], httpHeadersMap);
 
@@ -97,6 +100,17 @@ public class HttpRequest {
         }
 
 
+    }
+
+    private void setKeepAlive() {
+        String connection = headers.get(HttpRequestHeader.CONNECTION);
+        if ("keep-alive".equalsIgnoreCase(connection)) {
+            keepAlive = true;
+        } else if ("close".equalsIgnoreCase(connection) || HttpVersion.HTTP_1_0.equals(version)) {
+            keepAlive = false;
+        } else {
+            keepAlive = true;
+        }
     }
 
     public Map<HttpRequestHeader, String> getHeaders() {
@@ -131,7 +145,6 @@ public class HttpRequest {
 
 
         String[] requestLineFields = REQUEST_LINE_PATTERN.split(requestLine);
-
         this.method = HttpMethod.valueOf(requestLineFields[0]);
         parseRequestTarget(requestLineFields[1]);
         parseHttpVersion(requestLineFields[2]);
@@ -156,14 +169,24 @@ public class HttpRequest {
     }
 
     private void parseQuery(String query) {
+        String[] queryParameters = PARAM_STRING_PATTERN.split(query);
+        parameters = Collections.unmodifiableMap(Arrays.asList(queryParameters).stream().map((parameter) -> KEY_VALUE_PATTERN.split(parameter)).filter((parameterParts) -> parameterParts.length == 2).collect(Collectors.toMap((parametersParts) -> parametersParts[0], (parametersParts) -> parametersParts[1].trim())));
+    }
 
+    public String getParameter(String parameter) {
+
+        return parameters.get(parameter);
     }
 
 
     public boolean isKeepAlive() {
-
         return keepAlive;
     }
 
+
+    public String getHeader(HttpRequestHeader header) {
+
+        return headers.get(header);
+    }
 
 }

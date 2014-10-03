@@ -1,7 +1,7 @@
 package fr.meuret.webtesttech.nio;
 
 import fr.meuret.webtesttech.conf.HttpConfiguration;
-import fr.meuret.webtesttech.handlers.HttpProtocolHandler;
+import fr.meuret.webtesttech.handlers.Handler;
 import fr.meuret.webtesttech.handlers.Session;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,7 @@ public class IODispatcher {
 
     private final AsynchronousServerSocketChannel serverSocketChannel;
     private final HttpConfiguration configuration;
-    private HttpProtocolHandler protocolHandler;
+    private Handler protocolHandler;
     private CountDownLatch shutdownSignal = new CountDownLatch(1);
 
 
@@ -36,7 +36,7 @@ public class IODispatcher {
     }
 
 
-    public void registerHandler(HttpProtocolHandler protocolHandler) {
+    public void registerHandler(Handler protocolHandler) {
 
         this.protocolHandler = protocolHandler;
 
@@ -69,7 +69,7 @@ public class IODispatcher {
                     logger.debug("ACCEPT: {}", client.getRemoteAddress());
                     //Create new Session
                     final Session session = new Session(client, IODispatcher.this);
-                    read(session);
+                    asyncRead(session);
                 } catch (IOException e) {
                     logger.error("Error when getting the client remote address : {}", e);
                 }
@@ -94,27 +94,23 @@ public class IODispatcher {
 
     }
 
-    public void read(final Session session) {
-
-
+    public void asyncRead(final Session session) {
+        logger.debug("Thread {} => Trying to read buffer from {}", Thread.currentThread().toString(), session.getRemoteAddress());
+        session.getReadBuffer().clear();
         session.getClient().read(session.getReadBuffer(), session, new CompletionHandler<Integer, Session>() {
             @Override
             public void completed(Integer bytesRead, Session session) {
-                try {
-                    logger.debug("READ {} bytes : {}", bytesRead, session.getClient().getRemoteAddress());
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
 
-                if (bytesRead < 0) {
+                logger.debug("CompletionHandler : READ {} bytes : {}", bytesRead, session.getRemoteAddress());
+
+
+                if (bytesRead < 0)
                     //Client closed the session
-                    try {
-                        session.getClient().close();
-                    } catch (IOException e) {
-                        logger.error("Unable to close the client socket channel : {}", e);
-                    }
 
-                } else {
+                    session.close();
+
+
+                else {
                     session.getReadBuffer().flip();
                     protocolHandler.onMessage(session);
 
@@ -133,17 +129,25 @@ public class IODispatcher {
     }
 
 
-    public void write(Session session, ByteBuffer buffer) {
-
+    public void asyncWrite(Session session, ByteBuffer buffer, boolean flush) {
+        logger.debug("Thread {}=> Trying to write buffer : {}, flush={} to {}", Thread.currentThread().toString(), buffer, flush, session.getRemoteAddress());
         session.getClient().write(buffer, session, new CompletionHandler<Integer, Session>() {
             @Override
             public void completed(Integer bytesWritten, Session session) {
 
-                    if (buffer.hasRemaining()){
-                        session.getClient().write(buffer, session, this);
+
+                logger.debug("CompletionHandler : WRITE {} bytes : {}", bytesWritten, session.getRemoteAddress());
 
 
-                    }
+                if (buffer.hasRemaining()) {
+                    session.getClient().write(buffer, session, this);
+                } else if (flush) {
+
+                    if (session.isKeepAlive())
+                        asyncRead(session);
+                    else session.close();
+                }
+
 
             }
 

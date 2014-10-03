@@ -18,6 +18,10 @@ public class Session {
     private final AsynchronousSocketChannel client;
     private final IODispatcher ioDispatcher;
     private final ByteBuffer readBuffer = ByteBuffer.allocateDirect(8192);
+    private boolean keepAlive;
+    private String remoteAddress;
+
+
     public Session(AsynchronousSocketChannel client, IODispatcher ioDispatcher) {
         this.client = client;
         this.ioDispatcher = ioDispatcher;
@@ -26,14 +30,10 @@ public class Session {
             client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
             client.setOption(StandardSocketOptions.TCP_NODELAY, Boolean.TRUE);
         } catch (IOException e) {
-            logger.error("Unable to set Option for client socket channel : {}", e);
+            logger.error("Unable to set Option for client socket channel : ", e);
         }
 
     }
-
-
-
-    private String remoteAddress;
 
     public String getRemoteAddress() {
         return remoteAddress;
@@ -44,7 +44,11 @@ public class Session {
     }
 
     public void write(ByteBuffer out) {
-        ioDispatcher.write(this, out);
+        ioDispatcher.asyncWrite(this, out, false);
+    }
+
+    public void writeAndFlush(ByteBuffer out) {
+        ioDispatcher.asyncWrite(this, out, true);
     }
 
     public ByteBuffer getReadBuffer() {
@@ -52,4 +56,19 @@ public class Session {
     }
 
 
+    public boolean isKeepAlive() {
+        return keepAlive;
+    }
+
+    public void setKeepAlive(boolean keepAlive) {
+        this.keepAlive = keepAlive;
+    }
+
+    public void close() {
+        try {
+            client.close();
+        } catch (IOException e) {
+            logger.error("Error when closing the client socket : ", e);
+        }
+    }
 }

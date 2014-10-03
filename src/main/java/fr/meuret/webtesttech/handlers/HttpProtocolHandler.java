@@ -13,10 +13,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.activation.MimetypesFileTypeMap;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 
 /**
@@ -24,7 +22,7 @@ import java.nio.file.*;
  *
  * @author Jérôme
  */
-public class HttpProtocolHandler {
+public class HttpProtocolHandler implements Handler {
 
 
     private static final Logger logger = LoggerFactory.getLogger(HttpProtocolHandler.class);
@@ -36,6 +34,7 @@ public class HttpProtocolHandler {
     }
 
 
+    @Override
     public void onMessage(Session session) {
 
         try {
@@ -59,7 +58,10 @@ public class HttpProtocolHandler {
     private void buildResponse(HttpRequest request, Session session) {
 
         final HttpResponse response = new HttpResponse(request.getVersion());
-
+        session.setKeepAlive(request.isKeepAlive());
+        if (request.isKeepAlive()) {
+            response.setHeader(HttpResponseHeader.CONNECTION, "keep-alive");
+        }
         switch (request.getMethod()) {
 
             case GET:
@@ -71,6 +73,7 @@ public class HttpProtocolHandler {
 
 
     }
+
 
     private void doGet(HttpRequest request, HttpResponse response, Session session) {
 
@@ -128,6 +131,7 @@ public class HttpProtocolHandler {
         response.setStatusCode(StatusCode.FOUND);
         response.setHeader(HttpResponseHeader.LOCATION, requestPath);
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(0));
+        response.content().append("").append("");
         session.write(response.toByteBuffer());
 
 
@@ -142,7 +146,6 @@ public class HttpProtocolHandler {
             contentType = "application/octet-stream";
 
         response.setHeader(HttpResponseHeader.CONTENT_TYPE, contentType);
-        response.setHeader(HttpResponseHeader.CONNECTION, "close");
 
 
         try (FileChannel fileChannel = FileChannel.open(file, StandardOpenOption.READ)) {
@@ -154,8 +157,7 @@ public class HttpProtocolHandler {
             //Write status and headers
             session.write(response.toByteBuffer());
             //Write file
-            session.write(mappedFile);
-
+            session.writeAndFlush(mappedFile);
 
 
         }
@@ -167,7 +169,6 @@ public class HttpProtocolHandler {
     private void sendListing(Session session, HttpResponse response, Path realRequestPath) throws IOException {
         response.setStatusCode(StatusCode.OK);
         response.setHeader(HttpResponseHeader.CONTENT_TYPE, "text/html; charset=UTF-8");
-        response.setHeader(HttpResponseHeader.CONNECTION, "close");
 
         //In case of disk mirroring, or just links, we need to know the real rootPath
         final Path relativeFilePath = rootPath.relativize(realRequestPath);
@@ -225,8 +226,8 @@ public class HttpProtocolHandler {
 
 
         try {
-            logger.debug("HTTP WRITE: content-length={} : '{}", response.content().length(), session.getRemoteAddress());
-            session.write(response.toByteBuffer());
+            logger.debug("HTTP WRITE: content-length={} : {}", response.content().length(), session.getRemoteAddress());
+            session.writeAndFlush(response.toByteBuffer());
         } catch (Exception e) {
             sendError(StatusCode.INTERNAL_SERVER_ERROR);
         }
