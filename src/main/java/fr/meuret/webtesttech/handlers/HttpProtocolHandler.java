@@ -1,7 +1,6 @@
 package fr.meuret.webtesttech.handlers;
 
 import fr.meuret.webtesttech.http.HttpException;
-import fr.meuret.webtesttech.http.HttpVersion;
 import fr.meuret.webtesttech.http.request.HttpRequest;
 import fr.meuret.webtesttech.http.response.HttpResponse;
 import fr.meuret.webtesttech.http.response.HttpResponseHeader;
@@ -43,17 +42,20 @@ public class HttpProtocolHandler implements Handler {
             HttpRequest request = HttpRequest.from(session.getReadBuffer());
             buildResponse(request, session);
         } catch (HttpException e) {
-            sendError(e.getStatusCode());
+            sendError(e.getStatusCode(), session);
         }
 
 
     }
 
 
-    private void sendError(StatusCode statusCode) {
+    private void sendError(StatusCode statusCode, Session session) {
 
-        final HttpResponse httpResponse = new HttpResponse(HttpVersion.HTTP_1_1);
-        httpResponse.setHeader(HttpResponseHeader.CONNECTION, "close");
+        try {
+            session.write(HttpResponse.error(statusCode).toByteBuffer());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
 
     }
@@ -71,7 +73,7 @@ public class HttpProtocolHandler implements Handler {
                 doGet(request, response, session);
                 break;
             default:
-                sendError(StatusCode.NOT_IMPLEMENTED);
+                sendError(StatusCode.NOT_IMPLEMENTED, session);
         }
 
 
@@ -112,7 +114,7 @@ public class HttpProtocolHandler implements Handler {
                 return;
             }
         } catch (Exception e) {
-            sendError(StatusCode.INTERNAL_SERVER_ERROR);
+            sendError(StatusCode.INTERNAL_SERVER_ERROR, session);
         }
 
 
@@ -125,7 +127,7 @@ public class HttpProtocolHandler implements Handler {
         response.content().append("<!DOCTYPE HTML>").append("<html><head><title>Not Found</title></head><body>").append(StringUtils.CRLF).append("<h1>Not Found!!!</h1>").append(StringUtils.CRLF).append("</body></html>");
 
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(response.content().length()));
-        session.writeAndFlush(response.toByteBuffer());
+        session.write(response.toByteBuffer());
 
     }
 
@@ -135,7 +137,7 @@ public class HttpProtocolHandler implements Handler {
         response.setHeader(HttpResponseHeader.LOCATION, requestPath);
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(0));
         response.content().append("").append("");
-        session.writeAndFlush(response.toByteBuffer());
+        session.write(response.toByteBuffer());
 
 
     }
@@ -160,8 +162,7 @@ public class HttpProtocolHandler implements Handler {
             //Write status and headers
             session.write(response.toByteBuffer());
             //Write file
-            session.writeAndFlush(mappedFile);
-
+            session.write(mappedFile);
 
         }
 
@@ -230,9 +231,9 @@ public class HttpProtocolHandler implements Handler {
 
         try {
             logger.debug("HTTP WRITE: content-length={} : {}", response.content().length(), session.getRemoteAddress());
-            session.writeAndFlush(response.toByteBuffer());
+            session.write(response.toByteBuffer());
         } catch (Exception e) {
-            sendError(StatusCode.INTERNAL_SERVER_ERROR);
+            sendError(StatusCode.INTERNAL_SERVER_ERROR, session);
         }
 
 

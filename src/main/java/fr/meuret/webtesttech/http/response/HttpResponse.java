@@ -42,6 +42,16 @@ public class HttpResponse {
     }
 
 
+    public static HttpResponse error(StatusCode statusCode) {
+        final HttpResponse httpResponse = new HttpResponse(HttpVersion.HTTP_1_1);
+        httpResponse.setHeader(HttpResponseHeader.CONNECTION, "close");
+        httpResponse.setStatusCode(statusCode);
+        httpResponse.content().append(statusCode.getReasonPhrase());
+        return httpResponse;
+
+    }
+
+
     public void setHeader(HttpResponseHeader httpResponseHeader, String value) {
         this.headers.put(httpResponseHeader, value);
     }

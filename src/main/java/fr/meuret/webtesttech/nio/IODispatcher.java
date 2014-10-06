@@ -45,9 +45,8 @@ public class IODispatcher {
         try {
             serverSocketChannel.close();
         } catch (IOException e) {
-            logger.error("Unable to close the server socket {}, e");
+            logger.error("Unable to close the server socket", e);
         } finally {
-
             shutdownSignal.countDown();
         }
 
@@ -66,7 +65,7 @@ public class IODispatcher {
                     logger.debug("ACCEPT: {}", client.getRemoteAddress());
                     //Create new Session
                     final Session session = new Session(client, protocolHandler);
-                    session.pendingRead();
+                    session.start();
                 } catch (IOException e) {
                     logger.error("Error when getting the client remote address : ", e);
                 }
@@ -84,9 +83,8 @@ public class IODispatcher {
 
         try {
             shutdownSignal.await();
-            stop();
+
         } catch (InterruptedException e) {
-            stop();
             Thread.currentThread().interrupt();
         }
 

@@ -7,7 +7,7 @@ import java.nio.channels.CompletionHandler;
 /**
  * Created by meuj on 10/6/2014.
  */
-public class ReadCompletionHandler implements CompletionHandler<Integer, Session> {
+public final class ReadCompletionHandler implements CompletionHandler<Integer, Session> {
 
 
     private org.slf4j.Logger logger = LoggerFactory.getLogger(ReadCompletionHandler.class);
@@ -24,6 +24,11 @@ public class ReadCompletionHandler implements CompletionHandler<Integer, Session
             session.getReadBuffer().flip();
             if (session.getHandler() != null)
                 session.getHandler().onMessage(session);
+
+            if (session.isKeepAlive())
+                session.pendingRead();
+
+
         }
 
     }

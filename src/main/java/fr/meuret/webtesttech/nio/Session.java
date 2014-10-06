@@ -33,7 +33,6 @@ public class Session {
 
         try {
             this.remoteAddress = client.getRemoteAddress().toString();
-            client.setOption(StandardSocketOptions.SO_KEEPALIVE, Boolean.TRUE);
             client.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
         } catch (IOException e) {
             logger.error("Unable to set Option for client socket channel : ", e);
@@ -50,13 +49,18 @@ public class Session {
     }
 
     public void write(ByteBuffer out) {
-        pendingWrite(out);
+        boolean needToWrite = false;
+        synchronized (writeQueue) {
 
+            needToWrite = writeQueue.isEmpty();
+            writeQueue.offer(out);
+        }
+
+        if (needToWrite) {
+            pendingWrite(out);
+        }
     }
 
-    public void writeAndFlush(ByteBuffer out) {
-        pendingWrite(out);
-    }
 
     public ByteBuffer getReadBuffer() {
         return readBuffer;
@@ -80,29 +84,18 @@ public class Session {
     }
 
 
-    public void pendingRead() {
-        logger.debug("{} Pending read : {} ", getRemoteAddress());
+    void pendingRead() {
+
         getReadBuffer().clear();
         getClient().read(getReadBuffer(), this, new ReadCompletionHandler());
 
     }
 
 
-    public void pendingWrite(ByteBuffer out) {
-        logger.debug("{} Pending write : {} ", getRemoteAddress(), out);
-        boolean needToWrite = false;
-        synchronized (writeQueue) {
+    void pendingWrite(ByteBuffer out) {
 
-            needToWrite = writeQueue.isEmpty();
-            writeQueue.offer(out);
 
-        }
-
-        if (needToWrite) {
             this.getClient().write(out, this, new WriteCompletionHandler());
-            if (!keepAlive)
-                pendingRead();
-        }
     }
 
 
@@ -112,5 +105,10 @@ public class Session {
 
     public Queue<ByteBuffer> getWriteQueue() {
         return writeQueue;
+    }
+
+    public void start() {
+
+        pendingRead();
     }
 }

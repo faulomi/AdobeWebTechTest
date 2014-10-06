@@ -10,7 +10,7 @@ import java.util.Queue;
 /**
  * Created by meuj on 10/6/2014.
  */
-public class WriteCompletionHandler implements CompletionHandler<Integer, Session> {
+public final class WriteCompletionHandler implements CompletionHandler<Integer, Session> {
 
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(WriteCompletionHandler.class);
@@ -19,7 +19,6 @@ public class WriteCompletionHandler implements CompletionHandler<Integer, Sessio
     public void completed(Integer bytesWritten, Session session) {
 
 
-        logger.debug("CompletionHandler : WRITE {} bytes : {}", bytesWritten, session.getRemoteAddress());
         ByteBuffer next;
         Queue<ByteBuffer> writeQueue = session.getWriteQueue();
         synchronized (writeQueue) {
@@ -27,11 +26,12 @@ public class WriteCompletionHandler implements CompletionHandler<Integer, Sessio
             if (!next.hasRemaining()) {
                 writeQueue.remove();
                 next = writeQueue.peek();
+
             }
         }
         if (next != null) {
             logger.debug("{} Pending write from completionHandler : {} ", next);
-            session.pendingWrite(next);
+            session.getClient().write(next, session, new WriteCompletionHandler());
         }
 
 
