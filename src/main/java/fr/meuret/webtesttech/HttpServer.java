@@ -21,16 +21,17 @@ public class HttpServer {
     private static Logger logger = LoggerFactory.getLogger(HttpServer.class);
     private final HttpConfiguration configuration;
     private AsynchronousServerSocketChannel serverSocketChannel;
-
+    private IODispatcher dispatcher;
 
     public HttpServer(HttpConfiguration configuration) {
 
 
         this.configuration = configuration;
+
     }
 
     public HttpServer() {
-        configuration = HttpConfiguration.defaultConfiguration();
+        this(HttpConfiguration.defaultConfiguration());
     }
 
 
@@ -44,7 +45,6 @@ public class HttpServer {
             //Parse command line arguments and set values in the configuration
             jCommander.parse(args);
             final HttpServer httpServer = new HttpServer(configurationBuilder.build());
-
             httpServer.start();
         } catch (ParameterException e) {
             logger.error("Invalid configuration for the HTTP server.", e);
@@ -65,7 +65,7 @@ public class HttpServer {
 
     public void start() throws IOException {
         bind(configuration.getPort());
-        final IODispatcher dispatcher = new IODispatcher(serverSocketChannel, configuration);
+        dispatcher = new IODispatcher(serverSocketChannel);
         final HttpProtocolHandler httpHandler = new HttpProtocolHandler(configuration.getRootPath());
 
         dispatcher.registerHandler(httpHandler);
@@ -75,11 +75,6 @@ public class HttpServer {
 
 
     public void stop() {
-        try {
-            if (serverSocketChannel.isOpen())
-                serverSocketChannel.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        dispatcher.stop();
     }
 }

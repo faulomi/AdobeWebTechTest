@@ -95,7 +95,7 @@ public class HttpRequest {
 
 
         } catch (Exception e) {
-            logger.error("Error occured when parsing HTTP request : {}", e);
+            logger.error("Error occured when parsing HTTP request :", e);
             throw new HttpException(StatusCode.BAD_REQUEST);
         }
 

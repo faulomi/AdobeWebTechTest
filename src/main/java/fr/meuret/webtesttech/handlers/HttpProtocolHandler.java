@@ -6,6 +6,7 @@ import fr.meuret.webtesttech.http.request.HttpRequest;
 import fr.meuret.webtesttech.http.response.HttpResponse;
 import fr.meuret.webtesttech.http.response.HttpResponseHeader;
 import fr.meuret.webtesttech.http.response.StatusCode;
+import fr.meuret.webtesttech.nio.Session;
 import fr.meuret.webtesttech.util.HttpUtils;
 import fr.meuret.webtesttech.util.StringUtils;
 import org.slf4j.Logger;
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.*;
+
 
 /**
  * A HTTP protocol handler that parses request and build responses.
@@ -46,6 +48,7 @@ public class HttpProtocolHandler implements Handler {
 
 
     }
+
 
     private void sendError(StatusCode statusCode) {
 
@@ -122,7 +125,7 @@ public class HttpProtocolHandler implements Handler {
         response.content().append("<!DOCTYPE HTML>").append("<html><head><title>Not Found</title></head><body>").append(StringUtils.CRLF).append("<h1>Not Found!!!</h1>").append(StringUtils.CRLF).append("</body></html>");
 
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(response.content().length()));
-        session.write(response.toByteBuffer());
+        session.writeAndFlush(response.toByteBuffer());
 
     }
 
@@ -132,7 +135,7 @@ public class HttpProtocolHandler implements Handler {
         response.setHeader(HttpResponseHeader.LOCATION, requestPath);
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(0));
         response.content().append("").append("");
-        session.write(response.toByteBuffer());
+        session.writeAndFlush(response.toByteBuffer());
 
 
     }
@@ -213,7 +216,7 @@ public class HttpProtocolHandler implements Handler {
                 response.content().append(entry.getFileName().toString());
                 response.content().append("\">");
                 response.content().append(entry.getFileName());
-                response.content().append("</a></li>\r\n");
+                response.content().append("</a></li>" + StringUtils.CRLF);
             }
         } catch (IOException | DirectoryIteratorException e) {
             logger.error("Error occuring when browsing " + realRequestPath, e);
@@ -221,7 +224,7 @@ public class HttpProtocolHandler implements Handler {
         }
 
 
-        response.content().append("</ul></body></html>\r\n");
+        response.content().append("</ul></body></html>" + StringUtils.CRLF);
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, String.valueOf(response.content().length()));
 
 
