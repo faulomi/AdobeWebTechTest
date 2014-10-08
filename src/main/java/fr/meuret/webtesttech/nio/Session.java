@@ -93,9 +93,7 @@ public class Session {
 
 
     void pendingWrite(ByteBuffer out) {
-
-
-            this.getClient().write(out, this, new WriteCompletionHandler());
+        this.getClient().write(out, this, new WriteCompletionHandler());
     }
 
 

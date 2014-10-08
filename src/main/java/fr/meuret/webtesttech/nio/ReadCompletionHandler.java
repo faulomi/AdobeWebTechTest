@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.channels.CompletionHandler;
 
 /**
- * Created by meuj on 10/6/2014.
+ * A read completion handler that is notified by the OS when a asynchronous read operation has been performed.
  */
 public final class ReadCompletionHandler implements CompletionHandler<Integer, Session> {
 
@@ -35,7 +35,7 @@ public final class ReadCompletionHandler implements CompletionHandler<Integer, S
 
     @Override
     public void failed(Throwable exc, Session session) {
-
+        session.close();
 
     }
 }

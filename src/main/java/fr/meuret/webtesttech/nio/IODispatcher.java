@@ -75,7 +75,6 @@ public class IODispatcher {
 
             @Override
             public void failed(Throwable exc, Object attachment) {
-
                 logger.error("Error during accept phase: ", exc);
                 serverSocketChannel.accept(null, this);
             }
@@ -90,9 +89,5 @@ public class IODispatcher {
 
 
     }
-
-
-
-
 
 }

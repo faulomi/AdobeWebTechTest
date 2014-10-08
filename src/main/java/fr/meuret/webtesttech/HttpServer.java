@@ -13,7 +13,7 @@ import java.net.InetSocketAddress;
 import java.nio.channels.AsynchronousServerSocketChannel;
 
 /**
- * Created by Jérôme on 24/08/2014.
+ * A HTTP Server based on NIO framework.
  */
 public class HttpServer {
 
@@ -63,13 +63,18 @@ public class HttpServer {
 
     }
 
-    public void start() throws IOException {
-        bind(configuration.getPort());
-        dispatcher = new IODispatcher(serverSocketChannel);
-        final HttpProtocolHandler httpHandler = new HttpProtocolHandler(configuration.getRootPath());
+    public void start() {
+        try {
+            bind(configuration.getPort());
+            dispatcher = new IODispatcher(serverSocketChannel);
+            final HttpProtocolHandler httpHandler = new HttpProtocolHandler(configuration.getRootPath());
+            dispatcher.registerHandler(httpHandler);
+            dispatcher.start();
+        } catch (IOException e) {
+            logger.error("Unable to start server :", e);
+            throw new RuntimeException("Unable to start server :", e);
+        }
 
-        dispatcher.registerHandler(httpHandler);
-        dispatcher.start();
 
     }
 

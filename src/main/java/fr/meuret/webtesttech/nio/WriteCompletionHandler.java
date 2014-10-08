@@ -8,7 +8,7 @@ import java.util.Queue;
 
 
 /**
- * Created by meuj on 10/6/2014.
+ * A Write completion handler that is notified by the OS when a asynchronous write operation has been performed.
  */
 public final class WriteCompletionHandler implements CompletionHandler<Integer, Session> {
 
@@ -30,7 +30,6 @@ public final class WriteCompletionHandler implements CompletionHandler<Integer, 
             }
         }
         if (next != null) {
-            logger.debug("{} Pending write from completionHandler : {} ", next);
             session.getClient().write(next, session, new WriteCompletionHandler());
         }
 
@@ -39,6 +38,6 @@ public final class WriteCompletionHandler implements CompletionHandler<Integer, 
 
     @Override
     public void failed(Throwable exc, Session session) {
-        logger.debug("CompletionHandler : FAILED ", exc);
+        session.close();
     }
 }

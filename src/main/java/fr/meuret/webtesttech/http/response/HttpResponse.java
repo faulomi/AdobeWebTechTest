@@ -85,6 +85,7 @@ public class HttpResponse {
 
         //Delimiter
         response.add("");
+        //Add HTML content
         if (content.length() > 0) {
             response.add(content);
         }

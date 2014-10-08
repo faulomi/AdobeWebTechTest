@@ -54,7 +54,7 @@ public class HttpProtocolHandler implements Handler {
         try {
             session.write(HttpResponse.error(statusCode).toByteBuffer());
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Error ");
         }
 
 
