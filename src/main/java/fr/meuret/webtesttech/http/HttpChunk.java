@@ -11,6 +11,9 @@ import java.util.StringJoiner;
 
 /**
  * An HTTP chunk, as per defined in the RFC 7230.
+ *
+ * @author Jerome
+ * @see <a href ="http://tools.ietf.org/html/rfc7230">http://tools.ietf.org/html/rfc7230</a>
  */
 public class HttpChunk {
 
@@ -23,8 +26,7 @@ public class HttpChunk {
 
 
     public HttpChunk(String datas, int size) {
-        this.datas = datas;
-        this.size = size;
+        this.datas = datas; this.size = size;
     }
 
     public ByteBuffer toByteBuffer() throws Exception {

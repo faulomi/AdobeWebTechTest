@@ -3,7 +3,13 @@ package fr.meuret.webtesttech.http;
 import fr.meuret.webtesttech.http.response.StatusCode;
 
 /**
- * Created by Jérôme on 28/09/2014.
+ * A Http exception that may be thrown during the HTTP message processing.
+ * <p>
+ * Typically, this exception has to be catched and an HTTP response must be sent according to
+ * the status code.
+ *
+ * @author Jerome
+ *
  */
 public class HttpException extends Exception {
 

@@ -4,7 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created by Jérôme on 11/09/2014.
+ * Http version according to the RFC7230.
+ *
+ * @author Jerome
+ * @see <a href ="http://tools.ietf.org/html/rfc7230">http://tools.ietf.org/html/rfc7230</a>
  */
 public enum HttpVersion {
 

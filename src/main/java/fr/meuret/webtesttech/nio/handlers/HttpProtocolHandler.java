@@ -1,4 +1,4 @@
-package fr.meuret.webtesttech.handlers;
+package fr.meuret.webtesttech.nio.handlers;
 
 import fr.meuret.webtesttech.http.HttpException;
 import fr.meuret.webtesttech.http.request.HttpRequest;
@@ -21,7 +21,8 @@ import java.nio.file.*;
 /**
  * A HTTP protocol handler that parses request and build responses.
  *
- * @author Jérôme
+ * @author Jerome
+ * @see fr.meuret.webtesttech.nio.handlers.Handler
  */
 public class HttpProtocolHandler implements Handler {
 
@@ -39,8 +40,7 @@ public class HttpProtocolHandler implements Handler {
     public void onMessage(Session session) {
 
         try {
-            HttpRequest request = HttpRequest.from(session.getReadBuffer());
-            buildResponse(request, session);
+            HttpRequest request = HttpRequest.from(session.getReadBuffer()); buildResponse(request, session);
         } catch (HttpException e) {
             sendError(e.getStatusCode(), session);
         }
@@ -63,17 +63,11 @@ public class HttpProtocolHandler implements Handler {
     private void buildResponse(HttpRequest request, Session session) {
 
         final HttpResponse response = new HttpResponse(request.getVersion());
-        session.setKeepAlive(request.isKeepAlive());
-        if (request.isKeepAlive()) {
+        session.setKeepAlive(request.isKeepAlive()); if (request.isKeepAlive()) {
             response.setHeader(HttpResponseHeader.CONNECTION, "keep-alive");
-        }
-        switch (request.getMethod()) {
+        } switch (request.getMethod()) {
 
-            case GET:
-                doGet(request, response, session);
-                break;
-            default:
-                sendError(StatusCode.NOT_IMPLEMENTED, session);
+            case GET: doGet(request, response, session); break; default: sendError(StatusCode.NOT_IMPLEMENTED, session);
         }
 
 
@@ -89,8 +83,7 @@ public class HttpProtocolHandler implements Handler {
         try {
             Path resolvedRequestPath = rootPath.resolve(sanitizedRequestPath);
             if (Files.notExists(resolvedRequestPath) || Files.isHidden(resolvedRequestPath)) {
-                sendNotFound(session, response, requestPath);
-                return;
+                sendNotFound(session, response, requestPath); return;
             }
             //At this time, we know that real request path exists
             final Path realRequestPath = resolvedRequestPath.toRealPath();
@@ -100,18 +93,15 @@ public class HttpProtocolHandler implements Handler {
                 //By redirecting to the directory path suffixed by "/"
                 //we let the browser handle the path browsing and the parent->child relation
                 if (requestPath.endsWith("/")) {
-                    sendListing(session, response, realRequestPath);
-                    return;
+                    sendListing(session, response, realRequestPath); return;
                 } else {
-                    sendRedirect(session, response, requestPath + "/");
-                    return;
+                    sendRedirect(session, response, requestPath + "/"); return;
                 }
 
             }
 
             if (Files.isRegularFile(realRequestPath)) {
-                sendFile(session, response, realRequestPath);
-                return;
+                sendFile(session, response, realRequestPath); return;
             }
         } catch (Exception e) {
             sendError(StatusCode.INTERNAL_SERVER_ERROR, session);
@@ -124,7 +114,13 @@ public class HttpProtocolHandler implements Handler {
 
         response.setStatusCode(StatusCode.NOT_FOUND);
 
-        response.content().append("<!DOCTYPE HTML>").append("<html><head><title>Not Found</title></head><body>").append(StringUtils.CRLF).append("<h1>Not Found!!!</h1>").append(StringUtils.CRLF).append("</body></html>");
+        response.content()
+                .append("<!DOCTYPE HTML>")
+                .append("<html><head><title>Not Found</title></head><body>")
+                .append(StringUtils.CRLF)
+                .append("<h1>Not Found!!!</h1>")
+                .append(StringUtils.CRLF)
+                .append("</body></html>");
 
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(response.content().length()));
         session.write(response.toByteBuffer());
@@ -133,11 +129,9 @@ public class HttpProtocolHandler implements Handler {
 
     private void sendRedirect(Session session, HttpResponse response, String requestPath) throws Exception {
 
-        response.setStatusCode(StatusCode.FOUND);
-        response.setHeader(HttpResponseHeader.LOCATION, requestPath);
+        response.setStatusCode(StatusCode.FOUND); response.setHeader(HttpResponseHeader.LOCATION, requestPath);
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(0));
-        response.content().append("").append("");
-        session.write(response.toByteBuffer());
+        response.content().append("").append(""); session.write(response.toByteBuffer());
 
 
     }
@@ -185,7 +179,9 @@ public class HttpProtocolHandler implements Handler {
             filename = relativeFilePath.getFileName().toString();
 
 
-        response.content().append("<!DOCTYPE html>").append(StringUtils.CRLF)
+        response.content()
+                .append("<!DOCTYPE html>")
+                .append(StringUtils.CRLF)
                 .append("<html><head><title>")
                 .append("Listing of: ");
 
@@ -193,8 +189,7 @@ public class HttpProtocolHandler implements Handler {
         response.content().append(filename);
         response.content().append("</title></head><body>").append(StringUtils.CRLF);
 
-        response.content().append("<h3>Listing of: ");
-        response.content().append(filename);
+        response.content().append("<h3>Listing of: "); response.content().append(filename);
         response.content().append("</h3>").append(StringUtils.CRLF);
 
         response.content().append("<ul>");
@@ -203,20 +198,22 @@ public class HttpProtocolHandler implements Handler {
         logger.info("Browsing the path : {}", realRequestPath);
 
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(realRequestPath, new DirectoryStream.Filter<Path>() {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(realRequestPath,
+                                                                     new DirectoryStream.Filter<Path>() {
 
 
-            @Override
-            public boolean accept(Path entry) throws IOException {
-                return !Files.isHidden(entry) && Files.isReadable(entry) && HttpUtils.isAllowedFilename(entry.getFileName().toString());
-            }
-        })) {
+                                                                         @Override
+                                                                         public boolean accept(Path entry) throws IOException {
+                                                                             return !Files.isHidden(
+                                                                                     entry) && Files.isReadable(
+                                                                                     entry) && HttpUtils.isAllowedFilename(
+                                                                                     entry.getFileName().toString());
+                                                                         }
+                                                                     })) {
             for (Path entry : stream) {
                 logger.debug("Appending the path entry {} to the listing.", entry);
-                response.content().append("<li><a href=\"");
-                response.content().append(entry.getFileName().toString());
-                response.content().append("\">");
-                response.content().append(entry.getFileName());
+                response.content().append("<li><a href=\""); response.content().append(entry.getFileName().toString());
+                response.content().append("\">"); response.content().append(entry.getFileName());
                 response.content().append("</a></li>" + StringUtils.CRLF);
             }
         } catch (IOException | DirectoryIteratorException e) {

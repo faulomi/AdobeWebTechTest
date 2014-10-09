@@ -6,7 +6,7 @@ import java.net.URLDecoder;
 import java.util.regex.Pattern;
 
 /**
- * Created by Jérôme on 18/09/2014.
+ * Created by Jerome on 18/09/2014.
  */
 public class HttpUtils {
 
