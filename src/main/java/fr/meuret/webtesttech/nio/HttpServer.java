@@ -23,7 +23,7 @@ public class HttpServer {
 
     private static Logger logger = LoggerFactory.getLogger(HttpServer.class);
 
-    private class AcceptCompletionHandler implements CompletionHandler<AsynchronousSocketChannel, Object> {
+    private final CompletionHandler<AsynchronousSocketChannel, Object> acceptCompletionHandler = new CompletionHandler<AsynchronousSocketChannel, Object>() {
         @Override
         public void completed(AsynchronousSocketChannel client, Object attachment) {
             //Accept further connection
@@ -34,15 +34,13 @@ public class HttpServer {
             } catch (IOException e) {
                 logger.error("Error when getting the client remote address : ", e);
             }
-
-
         }
 
         @Override
         public void failed(Throwable exc, Object attachment) {
             logger.error("Error during accept phase: ", exc); serverSocketChannel.accept(null, this);
         }
-    }
+    };
 
     private final HttpConfiguration configuration;
     private AsynchronousServerSocketChannel serverSocketChannel;
@@ -96,7 +94,7 @@ public class HttpServer {
     private void pendingAccept() {
         if (serverSocketChannel == null) {
             throw new IllegalStateException("Server socket channel is null, please invoke start.");
-        } serverSocketChannel.accept(null, new AcceptCompletionHandler());
+        } serverSocketChannel.accept(null, acceptCompletionHandler);
     }
 
 
