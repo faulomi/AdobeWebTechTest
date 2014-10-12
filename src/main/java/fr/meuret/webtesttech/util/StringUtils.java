@@ -1,7 +1,7 @@
 package fr.meuret.webtesttech.util;
 
 /**
- * Created by Jérôme on 24/09/2014.
+ * An Utils class to manipulate String and special characters.
  */
 public class StringUtils {
 
