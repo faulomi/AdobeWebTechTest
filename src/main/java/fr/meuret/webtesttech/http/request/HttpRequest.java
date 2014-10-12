@@ -21,7 +21,8 @@ import java.util.stream.Collectors;
 /**
  * A Http request as per defined in the RFC7230.
  *
- * @see \http://tools.ietf.org/html/rfc7230
+ * @author Jerome
+ * @see <a href ="http://tools.ietf.org/html/rfc7230">http://tools.ietf.org/html/rfc7231</a>
  */
 public class HttpRequest {
 
@@ -185,7 +186,6 @@ public class HttpRequest {
 
 
     public String getHeader(HttpRequestHeader header) {
-
         return headers.get(header);
     }
 

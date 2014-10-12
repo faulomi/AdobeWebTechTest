@@ -18,7 +18,9 @@ import java.util.StringJoiner;
 /**
  * A Http response as per defined in the RFC7230.
  *
- * @see \http://tools.ietf.org/html/rfc7230
+ * @author Jerome
+ * @see <a href ="http://tools.ietf.org/html/rfc7230">http://tools.ietf.org/html/rfc7230</a>
+ *
  */
 public class HttpResponse {
 

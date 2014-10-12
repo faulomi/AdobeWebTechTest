@@ -3,6 +3,7 @@ package fr.meuret.webtesttech.http.response;
 /**
  * Represents a status code, as per the RFC 7231.
  *
+ * @author Jerome
  * @see <a href ="http://tools.ietf.org/html/rfc7231#section-6">http://tools.ietf.org/html/rfc7231#section-6</a>
  */
 public enum StatusCode {
@@ -56,9 +57,7 @@ public enum StatusCode {
 
     private StatusCode(int code, String reasonPhrase, boolean cacheable) {
 
-        this.code = code;
-        this.reasonPhrase = reasonPhrase;
-        this.cacheable = cacheable;
+        this.code = code; this.reasonPhrase = reasonPhrase; this.cacheable = cacheable;
     }
 
     private StatusCode(int code, String reasonPhrase) {

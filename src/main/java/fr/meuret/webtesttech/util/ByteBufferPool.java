@@ -3,7 +3,7 @@ package fr.meuret.webtesttech.util;
 import java.nio.ByteBuffer;
 
 /**
- * Created by Jérôme on 18/09/2014.
+ * Created by Jerome on 18/09/2014.
  */
 public abstract class ByteBufferPool {
 

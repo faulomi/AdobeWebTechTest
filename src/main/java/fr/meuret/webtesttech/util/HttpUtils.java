@@ -7,6 +7,7 @@ import java.util.regex.Pattern;
 
 /**
  * An Http Util class.
+ * @author Jerome
  */
 public class HttpUtils {
 

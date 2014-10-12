@@ -17,7 +17,7 @@
     <url>https://github.com/faulomi/AdobeWebTechTest</url>
     <developers>
         <developer>
-            <name>Jérôme Meuret</name>
+            <name>Jerome Meuret</name>
             <email>jerome.meuret@gmail.com</email>
         </developer>
     </developers>
@@ -71,7 +71,7 @@
                     <arguments>
                         <argument>-classpath</argument>
                         <classpath/>
-                        <argument>fr.meuret.webtesttech.HttpServer</argument>
+                        <argument>fr.meuret.webtesttech.nio.HttpServer</argument>
                     </arguments>
                 </configuration>
             </plugin>
@@ -90,7 +90,7 @@
                             <transformers>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>fr.meuret.webtesttech.HttpServer</mainClass>
+                                    <mainClass>fr.meuret.webtesttech.nio.HttpServer</mainClass>
 
                                 </transformer>
                                 <transformer

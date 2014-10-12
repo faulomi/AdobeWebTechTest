@@ -1,22 +1,98 @@
 package fr.meuret.webtesttech.nio;
 
-import fr.meuret.webtesttech.handlers.Handler;
+import fr.meuret.webtesttech.nio.handlers.Handler;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.StandardSocketOptions;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
 import java.util.LinkedList;
 import java.util.Queue;
 
 /**
- * Represents a session between the server and the client.
+ * Use <code>Session</code> to handle the socket connection between the server and a client.
+ *
+ * @author Jerome
  */
 public class Session {
 
 
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Session.class);
+
+    /**
+     * A read completion handler that is notified by the OS when a asynchronous read operation has been performed.
+     *
+     * @author Jerome
+     */
+    public static final class ReadCompletionHandler implements CompletionHandler<Integer, Session> {
+
+
+        private org.slf4j.Logger logger = LoggerFactory.getLogger(ReadCompletionHandler.class);
+
+        @Override
+        public void completed(Integer bytesRead, Session session) {
+
+            logger.debug("CompletionHandler : READ {} bytes : {}", bytesRead, session.getRemoteAddress());
+
+            if (bytesRead < 0)
+            //Client closed the session
+            {
+                session.close();
+            } else {
+                session.getReadBuffer().flip(); if (session.getHandler() != null) {
+                    session.getHandler().onMessage(session);
+                }
+
+                if (session.isKeepAlive()) {
+                    session.pendingRead();
+                }
+
+
+            }
+
+        }
+
+        @Override
+        public void failed(Throwable exc, Session session) {
+            session.close();
+
+        }
+    }
+
+    /**
+     * A Write completion handler that is notified by the OS when a asynchronous write operation has been performed.
+     *
+     * @author Jerome
+     */
+    public static final class WriteCompletionHandler implements CompletionHandler<Integer, Session> {
+
+
+        private static final org.slf4j.Logger logger = LoggerFactory.getLogger(WriteCompletionHandler.class);
+
+        @Override
+        public void completed(Integer bytesWritten, Session session) {
+
+
+            ByteBuffer next; Queue<ByteBuffer> writeQueue = session.getWriteQueue(); synchronized (writeQueue) {
+                next = writeQueue.peek(); if (!next.hasRemaining()) {
+                    writeQueue.remove(); next = writeQueue.peek();
+
+                }
+            } if (next != null) {
+                session.getClient().write(next, session, new WriteCompletionHandler());
+            }
+
+
+        }
+
+        @Override
+        public void failed(Throwable exc, Session session) {
+            session.close();
+        }
+    }
+
     private final AsynchronousSocketChannel client;
     private final ByteBuffer readBuffer = ByteBuffer.allocateDirect(8192);
     //To guarantee a thread-safe writing process
@@ -26,22 +102,26 @@ public class Session {
     private String remoteAddress;
     private Handler handler;
 
-
     public Session(AsynchronousSocketChannel client, Handler protocolHandler) {
         this.client = client;
         this.handler = protocolHandler;
 
-        try {
-            this.remoteAddress = client.getRemoteAddress().toString();
-            client.setOption(StandardSocketOptions.SO_REUSEADDR, Boolean.TRUE);
-        } catch (IOException e) {
-            logger.error("Unable to set Option for client socket channel : ", e);
-        }
 
     }
 
     public String getRemoteAddress() {
-        return remoteAddress;
+
+        String remoteAddress = "";
+        try {
+            InetSocketAddress socketAddress = (InetSocketAddress) client.getRemoteAddress();
+            remoteAddress = socketAddress.getHostName();
+        } catch (IOException e) {
+            logger.error("Unable to read client's remote address : ", e);
+
+        } finally {
+            return remoteAddress;
+        }
+
     }
 
     public AsynchronousSocketChannel getClient() {
@@ -61,11 +141,9 @@ public class Session {
         }
     }
 
-
     public ByteBuffer getReadBuffer() {
         return readBuffer;
     }
-
 
     public boolean isKeepAlive() {
         return keepAlive;
@@ -83,19 +161,16 @@ public class Session {
         }
     }
 
-
-    void pendingRead() {
+    private void pendingRead() {
 
         getReadBuffer().clear();
         getClient().read(getReadBuffer(), this, new ReadCompletionHandler());
 
     }
 
-
-    void pendingWrite(ByteBuffer out) {
+    private void pendingWrite(ByteBuffer out) {
         this.getClient().write(out, this, new WriteCompletionHandler());
     }
-
 
     public Handler getHandler() {
         return handler;

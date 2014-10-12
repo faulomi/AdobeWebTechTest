@@ -1,7 +1,10 @@
 package fr.meuret.webtesttech.http;
 
 /**
- * Created by Jérôme on 11/09/2014.
+ * HTTP method according to the RFC7231.
+ *
+ * @author Jerome
+ * @see <a href="https://tools.ietf.org/html/rfc7231#section-4.3">https://tools.ietf.org/html/rfc7231#section-4.3</a>
  */
 public enum HttpMethod {
 
