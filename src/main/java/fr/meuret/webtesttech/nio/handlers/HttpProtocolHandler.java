@@ -131,6 +131,7 @@ public class HttpProtocolHandler implements Handler {
     private void sendRedirect(Session session, HttpResponse response, String requestPath) throws Exception {
 
         response.setStatusCode(StatusCode.FOUND); response.setHeader(HttpResponseHeader.LOCATION, requestPath);
+        //Firefox doesn't handle redirection if no content-length header (#see https://bugzilla.mozilla.org/show_bug.cgi?id=347149)
         response.setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(0));
         response.content().append("").append(""); session.write(response.toByteBuffer());
 
