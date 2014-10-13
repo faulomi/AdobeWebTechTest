@@ -34,7 +34,7 @@ public class Session {
         @Override
         public void completed(Integer bytesRead, Session session) {
 
-            logger.debug("CompletionHandler : READ {} bytes : {}", bytesRead, session.getRemoteAddress());
+            logger.debug("ReadCompletionHandler : READ {} bytes : {}", bytesRead, session.getRemoteAddress());
 
             if (bytesRead < 0)
             //Client closed the session
@@ -74,14 +74,14 @@ public class Session {
         @Override
         public void completed(Integer bytesWritten, Session session) {
 
-
+            logger.debug("WriteCompletionHandler : {} bytes written : {}", bytesWritten, session.getRemoteAddress());
             ByteBuffer next; Queue<ByteBuffer> writeQueue = session.getWriteQueue(); synchronized (writeQueue) {
                 next = writeQueue.peek(); if (!next.hasRemaining()) {
                     writeQueue.remove(); next = writeQueue.peek();
 
                 }
             } if (next != null) {
-                session.getClient().write(next, session, new WriteCompletionHandler());
+                session.pendingWrite(next);
             }
 
 
@@ -102,17 +102,14 @@ public class Session {
     private String remoteAddress;
     private Handler handler;
 
-    public Session(AsynchronousSocketChannel client, Handler protocolHandler) {
+    public Session(AsynchronousSocketChannel client) {
         this.client = client;
-        this.handler = protocolHandler;
-
 
     }
 
     public String getRemoteAddress() {
 
-        String remoteAddress = "";
-        try {
+        String remoteAddress = ""; try {
             InetSocketAddress socketAddress = (InetSocketAddress) client.getRemoteAddress();
             remoteAddress = socketAddress.getHostName();
         } catch (IOException e) {
@@ -129,11 +126,9 @@ public class Session {
     }
 
     public void write(ByteBuffer out) {
-        boolean needToWrite = false;
-        synchronized (writeQueue) {
+        boolean needToWrite = false; synchronized (writeQueue) {
 
-            needToWrite = writeQueue.isEmpty();
-            writeQueue.offer(out);
+            needToWrite = writeQueue.isEmpty(); writeQueue.offer(out);
         }
 
         if (needToWrite) {
@@ -155,7 +150,8 @@ public class Session {
 
     public void close() {
         try {
-            client.close();
+            if (client.isOpen())
+                client.close();
         } catch (IOException e) {
             logger.error("Error when closing the client socket : ", e);
         }
@@ -163,17 +159,25 @@ public class Session {
 
     private void pendingRead() {
 
-        getReadBuffer().clear();
-        getClient().read(getReadBuffer(), this, new ReadCompletionHandler());
+        getReadBuffer().clear(); if (getClient().isOpen()) {
+            getClient().read(getReadBuffer(), this, new ReadCompletionHandler());
+        }
 
     }
 
     private void pendingWrite(ByteBuffer out) {
-        this.getClient().write(out, this, new WriteCompletionHandler());
+        if (getClient().isOpen()) {
+            this.getClient().write(out, this, new WriteCompletionHandler());
+        }
     }
 
     public Handler getHandler() {
         return handler;
+    }
+
+    public void registerHandler(Handler handler) {
+        this.handler = handler;
+
     }
 
     public Queue<ByteBuffer> getWriteQueue() {

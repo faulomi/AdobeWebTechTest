@@ -8,6 +8,7 @@ import fr.meuret.webtesttech.nio.Session;
  *
  * @author Jerome
  */
+@FunctionalInterface
 public interface Handler {
 
 

@@ -112,6 +112,7 @@ public class HttpProtocolHandler implements Handler {
 
     private void sendNotFound(Session session, HttpResponse response, String requestPath) throws Exception {
 
+
         response.setStatusCode(StatusCode.NOT_FOUND);
 
         response.content()
@@ -141,8 +142,9 @@ public class HttpProtocolHandler implements Handler {
         response.setStatusCode(StatusCode.OK);
 
         String contentType = MimetypesFileTypeMap.getDefaultFileTypeMap().getContentType(file.toFile());
-        if (contentType == null)
+        if (contentType == null) {
             contentType = "application/octet-stream";
+        }
 
         response.setHeader(HttpResponseHeader.CONTENT_TYPE, contentType);
 
@@ -175,8 +177,9 @@ public class HttpProtocolHandler implements Handler {
         //Root filename (in case the root path corresponds to the root of the filesystem (i.e c:\\)
         String filename = "/";
 
-        if (!relativeFilePath.getFileName().toString().isEmpty())
+        if (!relativeFilePath.getFileName().toString().isEmpty()) {
             filename = relativeFilePath.getFileName().toString();
+        }
 
 
         response.content()

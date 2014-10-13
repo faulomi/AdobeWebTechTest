@@ -8,7 +8,7 @@
             <level>WARN</level>
         </filter>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${ARCHIVE_LOGS_FOLDER}/adobe-please-hire-me.%d{yyyyMMdd}.log</fileNamePattern>
+            <fileNamePattern>${ARCHIVE_LOGS_FOLDER}/adobe-web-tech-test.%d{yyyyMMdd}.log</fileNamePattern>
         </rollingPolicy>
         <encoder>
             <pattern>%d{yyyy/MM/dd HH:mm:ss,SSS} [%thread] %-5level %logger{36} - %m %throwable{0}%n</pattern>
@@ -19,7 +19,7 @@
     <appender name="troubleshooting-file" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOGS_FOLDER}/adobe-webtesttech-httpserver.log-troubleshooting.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <fileNamePattern>${LOGS_FOLDER}/adobe-please-hire-me-troubleshooting.%i.log</fileNamePattern>
+            <fileNamePattern>${LOGS_FOLDER}/adobe-web-tech-test-troubleshooting.%i.log</fileNamePattern>
             <maxIndex>10</maxIndex>
         </rollingPolicy>
         <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
