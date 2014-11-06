@@ -52,6 +52,7 @@ public class HttpProtocolHandler implements Handler {
     private void sendError(StatusCode statusCode, Session session) {
 
         try {
+
             session.write(HttpResponse.error(statusCode).toByteBuffer());
         } catch (Exception e) {
             logger.error("Error ");
@@ -83,7 +84,7 @@ public class HttpProtocolHandler implements Handler {
         try {
             Path resolvedRequestPath = rootPath.resolve(sanitizedRequestPath);
             if (Files.notExists(resolvedRequestPath) || Files.isHidden(resolvedRequestPath)) {
-                sendNotFound(session, response, requestPath); return;
+                sendNotFound(session, response); return;
             }
             //At this time, we know that real request path exists
             final Path realRequestPath = resolvedRequestPath.toRealPath();
@@ -101,7 +102,7 @@ public class HttpProtocolHandler implements Handler {
             }
 
             if (Files.isRegularFile(realRequestPath)) {
-                sendFile(session, response, realRequestPath); return;
+                sendFile(session, response, realRequestPath);
             }
         } catch (Exception e) {
             sendError(StatusCode.INTERNAL_SERVER_ERROR, session);
@@ -110,7 +111,7 @@ public class HttpProtocolHandler implements Handler {
 
     }
 
-    private void sendNotFound(Session session, HttpResponse response, String requestPath) throws Exception {
+    private void sendNotFound(Session session, HttpResponse response) throws Exception {
 
 
         response.setStatusCode(StatusCode.NOT_FOUND);
@@ -202,23 +203,15 @@ public class HttpProtocolHandler implements Handler {
         logger.info("Browsing the path : {}", realRequestPath);
 
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(realRequestPath,
-                                                                     new DirectoryStream.Filter<Path>() {
-
-
-                                                                         @Override
-                                                                         public boolean accept(Path entry) throws IOException {
-                                                                             return !Files.isHidden(
-                                                                                     entry) && Files.isReadable(
-                                                                                     entry) && HttpUtils.isAllowedFilename(
-                                                                                     entry.getFileName().toString());
-                                                                         }
-                                                                     })) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(realRequestPath, entry -> !Files.isHidden(
+                entry) && Files.isReadable(
+                entry) && HttpUtils.isAllowedFilename(
+                entry.getFileName().toString()))) {
             for (Path entry : stream) {
                 logger.debug("Appending the path entry {} to the listing.", entry);
                 response.content().append("<li><a href=\""); response.content().append(entry.getFileName().toString());
                 response.content().append("\">"); response.content().append(entry.getFileName());
-                response.content().append("</a></li>" + StringUtils.CRLF);
+                response.content().append("</a></li>").append(StringUtils.CRLF);
             }
         } catch (IOException | DirectoryIteratorException e) {
             logger.error("Error occuring when browsing " + realRequestPath, e);

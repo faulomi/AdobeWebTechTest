@@ -20,7 +20,6 @@ import java.util.StringJoiner;
  *
  * @author Jerome
  * @see <a href ="http://tools.ietf.org/html/rfc7230">http://tools.ietf.org/html/rfc7230</a>
- *
  */
 public class HttpResponse {
 
@@ -32,7 +31,8 @@ public class HttpResponse {
     private HttpVersion httpVersion;
 
     public HttpResponse(HttpVersion version) {
-        headers.put(HttpResponseHeader.DATE, DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneId.of("GMT"))));
+        headers.put(HttpResponseHeader.DATE,
+                    DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.now(ZoneId.of("GMT"))));
         headers.put(HttpResponseHeader.SERVER, "AdobeWebTechTest/1.0");
         this.httpVersion = version;
 
@@ -49,6 +49,7 @@ public class HttpResponse {
         httpResponse.setHeader(HttpResponseHeader.CONNECTION, "close");
         httpResponse.setStatusCode(statusCode);
         httpResponse.content().append(statusCode.getReasonPhrase());
+
         return httpResponse;
 
     }
@@ -80,19 +81,24 @@ public class HttpResponse {
 
         //FOR HTTP 1.1, default charset is ISO-8859-1
         final CharsetEncoder responseEncoder = Charset.forName(StandardCharsets.ISO_8859_1.displayName()).newEncoder();
-        final StringJoiner response = new StringJoiner(StringUtils.CRLF, "", StringUtils.CRLF);
-        response.add(buildStatusLine(httpVersion, statusCode));
-        headers.forEach((header, value) -> response.add(String.join(": ", header.getHeaderName(), value)));
+        final StringBuilder response = new StringBuilder();
+        final StringJoiner headersBuffer = new StringJoiner(StringUtils.CRLF, "", StringUtils.CRLF);
 
-
-        //Delimiter
-        response.add("");
-        //Add HTML content
-        if (content.length() > 0) {
-            response.add(content);
+        boolean hasContent = content.length() > 0;
+        if (hasContent) {
+            setHeader(HttpResponseHeader.CONTENT_LENGTH, Integer.toString(content.length()));
         }
-        final ByteBuffer responseBuffer = responseEncoder.encode(CharBuffer.wrap(response.toString()));
-        return responseBuffer;
+        headersBuffer.add(buildStatusLine(httpVersion, statusCode));
+        headers.forEach((header, value) -> headersBuffer.add(String.join(": ", header.getHeaderName(), value)));
+
+        response.append(headersBuffer.toString());
+        //Add HTML content
+        if (hasContent) {
+            response.append(StringUtils.CRLF);
+            response.append(content);
+        }
+        return responseEncoder.encode(CharBuffer.wrap(response.toString()));
+
 
     }
 }

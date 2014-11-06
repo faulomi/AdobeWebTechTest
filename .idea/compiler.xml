@@ -23,10 +23,12 @@
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
         <module name="AdobeWebTechTest" />
+        <module name="AdobeWebTechTest_MEURET" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="AdobeWebTechTest" target="1.8" />
+      <module name="AdobeWebTechTest_MEURET" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>

@@ -83,6 +83,10 @@ public class Session {
             } if (next != null) {
                 session.pendingWrite(next);
             }
+            /*else if(!session.isKeepAlive()){
+                session.close();
+            }
+            */
 
 
         }

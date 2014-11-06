@@ -87,7 +87,7 @@ public class HttpRequest {
 
             final Map<HttpRequestHeader, String> httpHeadersMap = Arrays.stream(httpHeadersFields)
                     .skip(1)
-                    .map((String httpHeaderField) -> HEADER_VALUE_PATTERN.split(httpHeaderField))
+                    .map(HEADER_VALUE_PATTERN::split)
                     .filter((httpFieldParts) -> httpFieldParts.length == 2)
                     .collect(Collectors.toMap((httpFieldParts) -> HttpRequestHeader.fromHeader(httpFieldParts[0]), (httpFieldParts) -> httpFieldParts[1].trim()));
 
@@ -107,11 +107,8 @@ public class HttpRequest {
         String connection = headers.get(HttpRequestHeader.CONNECTION);
         if ("keep-alive".equalsIgnoreCase(connection)) {
             keepAlive = true;
-        } else if ("close".equalsIgnoreCase(connection) || HttpVersion.HTTP_1_0.equals(version)) {
-            keepAlive = false;
-        } else {
-            keepAlive = true;
-        }
+        } else
+            keepAlive = !("close".equalsIgnoreCase(connection) || HttpVersion.HTTP_1_0.equals(version));
     }
 
     public Map<HttpRequestHeader, String> getHeaders() {

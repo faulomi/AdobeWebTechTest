@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/AdobeWebTechTest_MEURET.iml" filepath="$PROJECT_DIR$/AdobeWebTechTest_MEURET.iml" />
+      <module fileurl="file://$PROJECT_DIR$/AdobeHttpServerBasedOnNIO2.iml" filepath="$PROJECT_DIR$/AdobeHttpServerBasedOnNIO2.iml" />
     </modules>
   </component>
 </project>
