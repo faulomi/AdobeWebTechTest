@@ -13,8 +13,8 @@
     <artifactId>adobe-http-server-nio2</artifactId>
     <version>1.0</version>
     <description>A multi-threaded (e.g. file-based) web server with thread-pooling implemented in Java.</description>
-    <name>AdobeHttpServerBasedOnNIO2</name>
-    <url>https://github.com/faulomi/AdobeHttpServerBasedOnNIO2</url>
+    <name>Http Server Based On NIO2</name>
+    <url>https://github.com/faulomi/HttpServerBasedOnNIO2</url>
     <developers>
         <developer>
             <name>Jerome Meuret</name>
