@@ -56,7 +56,3 @@ LIMITS & IMPROVEMENTS
 - Improve documentation but you still can generate it using : mvn javadoc:javadoc
 - Improve licensing notes
 
-
-
-Happy review !
-Jerome,fingers crossed
